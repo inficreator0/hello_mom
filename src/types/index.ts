@@ -1,26 +1,37 @@
 export interface Comment {
-  id: string;
+  id: string | number;
   content: string;
   author: string;
-  createdAt: Date;
-  postId: string;
+  authorId?: number;
+  authorUsername?: string;
+  createdAt: Date | string;
+  postId: string | number;
   replies?: Comment[];
-  parentId?: string;
+  parentId?: string | number | null;
+  parentCommentId?: number | null;
+  upvotes?: number;
+  downvotes?: number;
+  replyCount?: number;
 }
 
 export interface Post {
-  id: string;
+  id: string | number;
   title: string;
   content: string;
   author: string;
+  authorId?: number;
+  authorUsername?: string;
   category: string;
   flair?: string;
   votes: number;
+  upvotes?: number;
+  downvotes?: number;
   userVote?: 'up' | 'down' | null;
   bookmarked: boolean;
   comments: Comment[];
-  createdAt: Date;
-  updatedAt?: Date;
+  commentCount?: number;
+  createdAt: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface PostFormData {
@@ -39,4 +50,12 @@ export type CommunityCategory =
   | "Mental Health"
   | "Recovery"
   | "Milestones";
+
+export interface User {
+  id: string | number;
+  email: string;
+  name: string;
+  username?: string;
+  userId?: number;
+}
 

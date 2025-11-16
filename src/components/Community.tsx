@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Post, PostFormData, Comment, CommunityCategory } from "../types";
 import { usePosts } from "../context/PostsContext";
+import { postsAPI, commentsAPI } from "../lib/api";
 import SearchBar from "./common/SearchBar";
 import PostCard from "./common/PostCard";
 import PostFormDialog from "./common/PostFormDialog";
@@ -13,14 +14,14 @@ import CategoryTabs from "./common/CategoryTabs";
 const CATEGORIES: CommunityCategory[] = ["All", "Pregnancy", "Postpartum", "Feeding", "Sleep", "Mental Health", "Recovery", "Milestones"];
 
 const Community = () => {
-  const { posts, setPosts, updatePost } = usePosts();
+  const { posts, setPosts, updatePost, refreshPosts, isLoading } = usePosts();
 
   const [selectedCategory, setSelectedCategory] = useState<CommunityCategory>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | number | null>(null);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [formData, setFormData] = useState<PostFormData>({
     title: "",
@@ -39,55 +40,62 @@ const Community = () => {
     return matchesCategory && matchesSearch;
   });
 
-  const handleAddPost = () => {
+  const handleAddPost = async () => {
     if (!formData.title.trim() || !formData.content.trim()) {
       return;
     }
 
-    const newPost: Post = {
-      id: Date.now().toString(),
-      title: formData.title,
-      content: formData.content,
-      author: "You",
-      category: formData.category,
-      flair: formData.flair || undefined,
-      votes: 0,
-      bookmarked: false,
-      comments: [],
-      createdAt: new Date(),
-    };
-
-    setPosts((prevPosts) => [newPost, ...prevPosts]);
-    setFormData({ title: "", content: "", category: "All", flair: "" });
-    setIsAddDialogOpen(false);
+    try {
+      const response = await postsAPI.create({
+        title: formData.title,
+        content: formData.content,
+      });
+      
+      // Refresh posts to get the new post with all data
+      await refreshPosts();
+      setFormData({ title: "", content: "", category: "All", flair: "" });
+      setIsAddDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error creating post:", error);
+      alert(error.message || "Failed to create post. Please try again.");
+    }
   };
 
-  const handleEditPost = () => {
+  const handleEditPost = async () => {
     if (!editingPost || !formData.title.trim() || !formData.content.trim()) {
       return;
     }
 
-    updatePost(editingPost.id, (post) => ({
-      ...post,
-      title: formData.title,
-      content: formData.content,
-      category: formData.category,
-      flair: formData.flair || undefined,
-      updatedAt: new Date(),
-    }));
-
-    setEditingPost(null);
-    setFormData({ title: "", content: "", category: "All", flair: "" });
-    setIsEditDialogOpen(false);
-  };
-
-  const handleDeletePost = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this post?")) {
-      setPosts((prevPosts) => prevPosts.filter((post) => post.id !== id));
+    try {
+      await postsAPI.update(String(editingPost.id), {
+        title: formData.title,
+        content: formData.content,
+      });
+      
+      // Refresh posts to get updated data
+      await refreshPosts();
+      setEditingPost(null);
+      setFormData({ title: "", content: "", category: "All", flair: "" });
+      setIsEditDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error updating post:", error);
+      alert(error.message || "Failed to update post. Please try again.");
     }
   };
 
-  const handleVote = (postId: string, voteType: "up" | "down") => {
+  const handleDeletePost = async (id: string | number) => {
+    if (window.confirm("Are you sure you want to delete this post?")) {
+      try {
+        await postsAPI.delete(String(id));
+        await refreshPosts();
+      } catch (error: any) {
+        console.error("Error deleting post:", error);
+        alert(error.message || "Failed to delete post. Please try again.");
+      }
+    }
+  };
+
+  const handleVote = (postId: string | number, voteType: "up" | "down") => {
     updatePost(postId, (post) => {
       const currentVote = post.userVote;
       let newVotes = post.votes;
@@ -105,53 +113,45 @@ const Community = () => {
     });
   };
 
-  const handleBookmark = (postId: string) => {
+  const handleBookmark = (postId: string | number) => {
     updatePost(postId, (post) => ({
       ...post,
       bookmarked: !post.bookmarked,
     }));
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!selectedPostId || !commentText.trim()) return;
 
-    const newComment: Comment = {
-      id: Date.now().toString(),
-      content: commentText,
-      author: "You",
-      postId: selectedPostId,
-      createdAt: new Date(),
-      replies: [],
-    };
-
-    updatePost(selectedPostId, (post) => ({
-      ...post,
-      comments: [...post.comments, newComment],
-    }));
-
-    setCommentText("");
-    setIsCommentDialogOpen(false);
-    setSelectedPostId(null);
+    try {
+      await commentsAPI.create(String(selectedPostId), {
+        content: commentText,
+      });
+      
+      // Refresh posts to get updated comments
+      await refreshPosts();
+      setCommentText("");
+      setIsCommentDialogOpen(false);
+      setSelectedPostId(null);
+    } catch (error: any) {
+      console.error("Error adding comment:", error);
+      alert(error.message || "Failed to add comment. Please try again.");
+    }
   };
 
-  const handleReply = (postId: string, commentId: string, replyContent: string) => {
-    const newReply: Comment = {
-      id: Date.now().toString(),
-      content: replyContent,
-      author: "You",
-      postId: postId,
-      parentId: commentId,
-      createdAt: new Date(),
-    };
-
-    updatePost(postId, (post) => ({
-      ...post,
-      comments: post.comments.map((comment) =>
-        comment.id === commentId
-          ? { ...comment, replies: [...(comment.replies || []), newReply] }
-          : comment
-      ),
-    }));
+  const handleReply = async (postId: string | number, commentId: string | number, replyContent: string) => {
+    try {
+      await commentsAPI.create(String(postId), {
+        content: replyContent,
+        parentCommentId: Number(commentId),
+      });
+      
+      // Refresh posts to get updated comments
+      await refreshPosts();
+    } catch (error: any) {
+      console.error("Error adding reply:", error);
+      alert(error.message || "Failed to add reply. Please try again.");
+    }
   };
 
   const openEditDialog = (post: Post) => {
@@ -165,24 +165,27 @@ const Community = () => {
     setIsEditDialogOpen(true);
   };
 
-  const openCommentDialog = (postId: string) => {
+  const openCommentDialog = (postId: string | number) => {
     setSelectedPostId(postId);
     setIsCommentDialogOpen(true);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date);
+    }).format(dateObj);
   };
 
   const sortedPosts = [...filteredPosts].sort((a, b) => {
     if (b.votes !== a.votes) return b.votes - a.votes;
-    return b.createdAt.getTime() - a.createdAt.getTime();
+    const dateA = typeof a.createdAt === "string" ? new Date(a.createdAt).getTime() : a.createdAt.getTime();
+    const dateB = typeof b.createdAt === "string" ? new Date(b.createdAt).getTime() : b.createdAt.getTime();
+    return dateB - dateA;
   });
 
   return (
@@ -245,7 +248,13 @@ const Community = () => {
       />
 
       <div className="space-y-4">
-        {sortedPosts.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-center text-muted-foreground">Loading posts...</p>
+            </CardContent>
+          </Card>
+        ) : sortedPosts.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
               <p className="text-center text-muted-foreground">

@@ -4,16 +4,25 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { usePosts } from "../context/PostsContext";
+import { postsAPI, commentsAPI } from "../lib/api";
 import CommentDialog from "../components/common/CommentDialog";
 import ReplyDialog from "../components/common/ReplyDialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Comment } from "../types";
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPostById, updatePost, setPosts } = usePosts();
+  const { getPostById, updatePost, refreshPosts } = usePosts();
   const post = id ? getPostById(id) : undefined;
+
+  // Load post details and comments if not already loaded
+  useEffect(() => {
+    if (id && post) {
+      // Post is already loaded, but ensure comments are loaded
+      refreshPosts();
+    }
+  }, [id]);
 
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
@@ -40,14 +49,15 @@ const PostDetail = () => {
     );
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date);
+    }).format(dateObj);
   };
 
   const handleVote = (voteType: "up" | "down") => {
@@ -75,49 +85,40 @@ const PostDetail = () => {
     }));
   };
 
-  const handleAddComment = () => {
-    if (!commentText.trim()) return;
+  const handleAddComment = async () => {
+    if (!commentText.trim() || !id) return;
 
-    const newComment: Comment = {
-      id: Date.now().toString(),
-      content: commentText,
-      author: "You",
-      postId: post.id,
-      createdAt: new Date(),
-      replies: [],
-    };
-
-    updatePost(post.id, (currentPost) => ({
-      ...currentPost,
-      comments: [...currentPost.comments, newComment],
-    }));
-
-    setCommentText("");
-    setIsCommentDialogOpen(false);
+    try {
+      await commentsAPI.create(id, {
+        content: commentText,
+      });
+      
+      await refreshPosts();
+      setCommentText("");
+      setIsCommentDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error adding comment:", error);
+      alert(error.message || "Failed to add comment. Please try again.");
+    }
   };
 
-  const handleReply = (commentId: string, replyContent: string) => {
-    const newReply: Comment = {
-      id: Date.now().toString(),
-      content: replyContent,
-      author: "You",
-      postId: post.id,
-      parentId: commentId,
-      createdAt: new Date(),
-    };
+  const handleReply = async (commentId: string | number, replyContent: string) => {
+    if (!id) return;
 
-    updatePost(post.id, (currentPost) => ({
-      ...currentPost,
-      comments: currentPost.comments.map((comment) =>
-        comment.id === commentId
-          ? { ...comment, replies: [...(comment.replies || []), newReply] }
-          : comment
-      ),
-    }));
-
-    setReplyText("");
-    setIsReplyDialogOpen(false);
-    setSelectedCommentId(null);
+    try {
+      await commentsAPI.create(id, {
+        content: replyContent,
+        parentCommentId: Number(commentId),
+      });
+      
+      await refreshPosts();
+      setReplyText("");
+      setIsReplyDialogOpen(false);
+      setSelectedCommentId(null);
+    } catch (error: any) {
+      console.error("Error adding reply:", error);
+      alert(error.message || "Failed to add reply. Please try again.");
+    }
   };
 
   const openReplyDialog = (commentId: string) => {
@@ -125,10 +126,17 @@ const PostDetail = () => {
     setIsReplyDialogOpen(true);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    if (!id) return;
+    
     if (window.confirm("Are you sure you want to delete this post?")) {
-      setPosts((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
-      navigate("/community");
+      try {
+        await postsAPI.delete(id);
+        navigate("/community");
+      } catch (error: any) {
+        console.error("Error deleting post:", error);
+        alert(error.message || "Failed to delete post. Please try again.");
+      }
     }
   };
 
@@ -270,7 +278,7 @@ const PostDetail = () => {
             replyingTo={post.comments.find((c) => c.id === selectedCommentId)?.author}
             value={replyText}
             onChange={setReplyText}
-            onSubmit={() => handleReply(selectedCommentId, replyText)}
+            onSubmit={() => selectedCommentId && handleReply(selectedCommentId, replyText)}
           />
         )}
       </div>
@@ -284,35 +292,29 @@ const CommentItem = ({
   onReply,
 }: {
   comment: Comment;
-  formatDate: (date: Date) => string;
+  formatDate: (date: Date | string) => string;
   onReply: (commentId: string) => void;
 }) => {
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const { updatePost } = usePosts();
+  const { refreshPosts } = usePosts();
 
-  const handleReplySubmit = () => {
-    if (replyText.trim()) {
-      const newReply: Comment = {
-        id: Date.now().toString(),
+  const handleReplySubmit = async () => {
+    if (!replyText.trim()) return;
+
+    try {
+      await commentsAPI.create(String(comment.postId), {
         content: replyText,
-        author: "You",
-        postId: comment.postId,
-        parentId: comment.id,
-        createdAt: new Date(),
-      };
-
-      updatePost(comment.postId, (currentPost) => ({
-        ...currentPost,
-        comments: currentPost.comments.map((c) =>
-          c.id === comment.id
-            ? { ...c, replies: [...(c.replies || []), newReply] }
-            : c
-        ),
-      }));
-
+        parentCommentId: Number(comment.id),
+      });
+      
+      // Refresh to get updated comments
+      await refreshPosts();
       setReplyText("");
       setIsReplyDialogOpen(false);
+    } catch (error: any) {
+      console.error("Error adding reply:", error);
+      alert(error.message || "Failed to add reply. Please try again.");
     }
   };
 

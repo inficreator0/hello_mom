@@ -10,12 +10,12 @@ import ReplyDialog from "./ReplyDialog";
 interface PostCardProps {
   post: Post;
   onEdit?: (post: Post) => void;
-  onDelete?: (postId: string) => void;
-  onVote?: (postId: string, voteType: "up" | "down") => void;
-  onBookmark?: (postId: string) => void;
-  onComment?: (postId: string) => void;
-  onReply?: (postId: string, commentId: string, replyContent: string) => void;
-  formatDate?: (date: Date) => string;
+  onDelete?: (postId: string | number) => void;
+  onVote?: (postId: string | number, voteType: "up" | "down") => void;
+  onBookmark?: (postId: string | number) => void;
+  onComment?: (postId: string | number) => void;
+  onReply?: (postId: string | number, commentId: string | number, replyContent: string) => void;
+  formatDate?: (date: Date | string) => string;
   showActions?: boolean;
 }
 
@@ -30,14 +30,15 @@ const PostCard = ({
   formatDate,
   showActions = true,
 }: PostCardProps) => {
-  const defaultFormatDate = (date: Date) => {
+  const defaultFormatDate = (date: Date | string) => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date);
+    }).format(dateObj);
   };
 
   const format = formatDate || defaultFormatDate;
@@ -187,16 +188,16 @@ const CommentItem = ({
   onReply 
 }: { 
   comment: Comment; 
-  formatDate: (date: Date) => string;
-  postId: string;
-  onReply?: (postId: string, commentId: string, replyContent: string) => void;
+  formatDate: (date: Date | string) => string;
+  postId: string | number;
+  onReply?: (postId: string | number, commentId: string | number, replyContent: string) => void;
 }) => {
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
 
   const handleReplySubmit = () => {
     if (replyText.trim() && onReply) {
-      onReply(postId, comment.id, replyText);
+      onReply(postId, String(comment.id), replyText);
       setReplyText("");
       setIsReplyDialogOpen(false);
     }
