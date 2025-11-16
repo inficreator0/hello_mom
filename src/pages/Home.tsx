@@ -12,7 +12,7 @@ const Home = () => {
       title: "Community",
       description: "Connect with other mothers, share experiences, and get support",
       action: "Explore Community",
-      path: "/community",
+      path: "/",
       color: "text-primary",
       bgColor: "bg-primary/10",
     },

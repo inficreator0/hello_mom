@@ -24,18 +24,18 @@ const AuthenticatedApp = () => {
             path="/"
             element={
               <ProtectedRoute>
-                <Home />
+                <Community />
               </ProtectedRoute>
             }
           />
-          <Route
+          {/* <Route
             path="/community"
             element={
               <ProtectedRoute>
                 <Community />
               </ProtectedRoute>
             }
-          />
+          /> */}
           <Route
             path="/post/:id"
             element={

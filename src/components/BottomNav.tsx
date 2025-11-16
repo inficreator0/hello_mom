@@ -19,7 +19,7 @@ const BottomNav = () => {
       <div className="flex justify-around items-center h-16 max-w-md mx-auto px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname === item.path || (item.path === "/community" && location.pathname === "/");
           return (
             <button
               key={item.path}
