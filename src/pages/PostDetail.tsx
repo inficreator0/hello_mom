@@ -157,14 +157,16 @@ const PostDetail = () => {
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <CardTitle className="text-2xl">{post.title}</CardTitle>
-                  {post.flair && <Badge variant="secondary">{post.flair}</Badge>}
-                  <Badge variant="outline">{post.category}</Badge>
+                  <CardTitle className="text-base">{post.title}</CardTitle>
+
                 </div>
-                <CardDescription className="text-sm">
+                <CardDescription className="text-[10px] mb-[4px]">
                   by {post.author} • {formatDate(post.createdAt)}
-                  {post.updatedAt && ` • Updated ${formatDate(post.updatedAt)}`}
+                  {post.updatedAt ? ` • Updated`: ''}
                 </CardDescription>
+
+                {post.flair && <Badge variant="secondary">{post.flair}</Badge>}
+                  <Badge variant="outline">{post.category}</Badge>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -179,7 +181,7 @@ const PostDetail = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap mb-6 text-base leading-relaxed">{post.content}</p>
+            <p className="whitespace-pre-wrap mb-6 text-sm leading-relaxed">{post.content}</p>
             <div className="flex items-center gap-4 flex-wrap border-t pt-4">
               <div className="flex items-center gap-1">
                 <Button
@@ -190,12 +192,12 @@ const PostDetail = () => {
                   aria-label="Upvote"
                 >
                   <ChevronUp
-                    className={`h-5 w-5 ${
+                    className={`h-4 w-4 ${
                       post.userVote === "up" ? "text-primary fill-primary" : ""
                     }`}
                   />
                 </Button>
-                <span className="font-semibold min-w-[2rem] text-center text-lg">
+                <span className="font-semibold min-w-[2rem] text-center text-base">
                   {post.votes}
                 </span>
                 <Button
@@ -206,7 +208,7 @@ const PostDetail = () => {
                   aria-label="Downvote"
                 >
                   <ChevronDown
-                    className={`h-5 w-5 ${
+                    className={`h-4 w-4 ${
                       post.userVote === "down" ? "text-destructive fill-destructive" : ""
                     }`}
                   />
@@ -227,9 +229,9 @@ const PostDetail = () => {
                 aria-label={post.bookmarked ? "Unbookmark" : "Bookmark"}
               >
                 {post.bookmarked ? (
-                  <BookmarkCheck className="h-5 w-5 text-primary fill-primary" />
+                  <BookmarkCheck className="h-4 w-4 text-primary fill-primary" />
                 ) : (
-                  <Bookmark className="h-5 w-5" />
+                  <Bookmark className="h-4 w-4" />
                 )}
               </Button>
             </div>
