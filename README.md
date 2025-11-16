@@ -1,121 +1,46 @@
-# Hello Mom - Parenting & Baby Care Community App
+# Getting Started with Create React App
 
-A comprehensive React Native application built with Expo, designed to support new and expecting mothers through their pregnancy and postpartum journey.
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Features
+## Available Scripts
 
-### 🏘️ Community Section
-- Reddit-like community interface with posts, comments, and voting
-- Multiple sub-communities (Postpartum Recovery, Breastfeeding, Sleep Training, etc.)
-- Search and filter functionality
-- Interactive upvoting and bookmarking
+In the project directory, you can run:
 
-### 👩‍⚕️ Healthcare Consultation
-- Doctor directory with detailed profiles
-- Search and filter by specialization
-- Book consultations (Video, Voice, or Chat)
-- View doctor availability and ratings
+### `npm start`
 
-### 📊 Health Trackers
-- **Baby Tracker**: Growth, feeding, sleep, diapers, milestones, vaccinations
-- **Mother Tracker**: Postpartum recovery, mood, sleep, breastfeeding, goals
-- Quick action buttons for logging activities
-- Visual progress tracking
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-## Tech Stack
+The page will reload if you make edits.\
+You will also see any lint errors in the console.
 
-- **Framework**: Expo React Native
-- **Navigation**: React Navigation (Bottom Tabs + Stack)
-- **Styling**: React Native StyleSheet with warm theme
-- **Icons**: Expo Vector Icons (Ionicons)
-- **Gradients**: Expo Linear Gradient
+### `npm test`
 
-## Getting Started
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-### Prerequisites
-- Node.js (v20+)
-- npm or yarn
-- Expo CLI (installed globally or via npx)
+### `npm run build`
 
-### Installation
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-1. Install dependencies:
-```bash
-npm install
-```
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
-2. Start the development server:
-```bash
-# For web
-npm start -- --web
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-# For iOS
-npm start -- --ios
+### `npm run eject`
 
-# For Android
-npm start -- --android
-```
+**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
 
-Or use Expo CLI directly:
-```bash
-npx expo start
-```
+If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-Then press `w` for web, `i` for iOS, or `a` for Android.
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
 
-## Project Structure
+You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
 
-```
-hello_mom/
-├── App.js                 # Main app component with navigation
-├── theme.js              # Theme configuration (colors, typography, spacing)
-├── data/
-│   └── mockData.js       # Mock data for all features
-├── screens/
-│   ├── CommunityScreen.js
-│   ├── PostDetailScreen.js
-│   ├── DoctorsScreen.js
-│   ├── DoctorDetailScreen.js
-│   ├── BookingScreen.js
-│   ├── TrackersScreen.js
-│   ├── BabyTrackerScreen.js
-│   └── MotherTrackerScreen.js
-└── components/
-    └── PostCard.js       # Reusable post card component
-```
+## Learn More
 
-## Theme
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-The app uses a warm, welcoming color palette:
-- **Primary**: Soft Pink (#FF6B9D)
-- **Secondary**: Peach (#FFB88C)
-- **Accent**: Warm Yellow (#FFD93D)
-- **Background**: Warm Off-White (#FFF9F5)
-
-## Mock Data
-
-All features currently use mock data stored in `data/mockData.js`. This includes:
-- Community posts and comments
-- Doctor profiles and availability
-- Baby and mother tracking data
-
-## Features in Development
-
-- Backend integration
-- User authentication
-- Real-time updates
-- Push notifications
-- Data persistence
-- Image uploads
-- Video consultation integration
-
-## Notes
-
-- The app is currently running with mock data only
-- All interactions are simulated (upvotes, comments, bookings)
-- Asset files (icons, splash screens) need to be added for production
-
-## License
-
-This project is for demonstration purposes.
-
+To learn React, check out the [React documentation](https://reactjs.org/).
