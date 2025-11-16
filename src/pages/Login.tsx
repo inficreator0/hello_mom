@@ -22,7 +22,7 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      navigate("/", { replace: true });
+      navigate("/community", { replace: true });
     }
   }, [isAuthenticated, authLoading, navigate]);
 
