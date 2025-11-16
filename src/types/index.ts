@@ -5,6 +5,7 @@ export interface Comment {
   authorId?: number;
   authorUsername?: string;
   createdAt: Date | string;
+  updatedAt?: Date | string;
   postId: string | number;
   replies?: Comment[];
   parentId?: string | number | null;

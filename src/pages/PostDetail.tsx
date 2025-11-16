@@ -61,7 +61,7 @@ const PostDetail = () => {
   };
 
   const handleVote = (voteType: "up" | "down") => {
-    updatePost(post.id, (currentPost) => {
+    updatePost(post.id as string, (currentPost) => { //TODO: fix this
       const currentVote = currentPost.userVote;
       let newVotes = currentPost.votes;
 
@@ -79,7 +79,7 @@ const PostDetail = () => {
   };
 
   const handleBookmark = () => {
-    updatePost(post.id, (currentPost) => ({
+    updatePost(post.id as string, (currentPost) => ({ //TODO: fix this
       ...currentPost,
       bookmarked: !currentPost.bookmarked,
     }));

@@ -96,7 +96,7 @@ const Community = () => {
   };
 
   const handleVote = (postId: string | number, voteType: "up" | "down") => {
-    updatePost(postId, (post) => {
+    updatePost(postId as string, (post) => { //TODO: fix this
       const currentVote = post.userVote;
       let newVotes = post.votes;
 
@@ -114,7 +114,7 @@ const Community = () => {
   };
 
   const handleBookmark = (postId: string | number) => {
-    updatePost(postId, (post) => ({
+    updatePost(postId as string, (post) => ({ //TODO: fix this
       ...post,
       bookmarked: !post.bookmarked,
     }));
