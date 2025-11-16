@@ -160,7 +160,7 @@ const PostCard = ({
         </div>
       </CardContent>
       {post.comments.length > 0 && (
-        <CardFooter className="flex-col items-start gap-2 pt-0">
+        <CardFooter className="flex-col items-start gap-2 pt-0 pb-2">
           <div className="w-full border-t pt-4">
             <p className="text-sm font-semibold mb-2">Comments:</p>
             <div className="space-y-3">

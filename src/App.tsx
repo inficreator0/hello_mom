@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Community from './components/Community';
-import Trackers from './pages/Trackers';
+import {Trackers} from './pages/Trackers';
 import PostDetail from './pages/PostDetail';
 import Login from './pages/Login';
 import BottomNav from './components/BottomNav';
@@ -10,6 +10,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { PostsProvider } from './context/PostsContext';
 import { AuthProvider } from './context/AuthContext';
 import './App.css';
+import { Profile } from './pages/Profile';
+import { Consultations } from './pages/Consultations';
+import { Articles } from './pages/Articles';
 
 // Component to handle authenticated routes
 const AuthenticatedApp = () => {
@@ -46,6 +49,30 @@ const AuthenticatedApp = () => {
             element={
               <ProtectedRoute>
                 <Trackers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/consult"
+            element={
+              <ProtectedRoute>
+                <Consultations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/articles"
+            element={
+              <ProtectedRoute>
+                <Articles />
               </ProtectedRoute>
             }
           />
