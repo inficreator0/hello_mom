@@ -1,3 +1,5 @@
+import { Post } from "@/types";
+
 const API_BASE_URL = "https://motherhood-community-app-latest.onrender.com/api";
 
 // Get JWT token from localStorage
@@ -118,6 +120,14 @@ export const postsAPI = {
     await apiRequest(`/posts/${id}`, {
       method: "DELETE",
     });
+  },
+
+  upvote: async (id: string) => {
+    await apiRequest(`/posts/${id}/upvote`);
+  },
+
+  downvote: async (id: string) => {
+    await apiRequest(`/posts/${id}/downvote`);
   },
 };
 

@@ -100,6 +100,12 @@ const Community = () => {
       const currentVote = post.userVote;
       let newVotes = post.votes;
 
+      try {
+        if(voteType === 'up')
+        postsAPI.upvote(post.id as string)
+      else postsAPI.downvote(post.id as string)
+      } catch {}
+
       if (currentVote === voteType) {
         newVotes += voteType === "up" ? -1 : 1;
         return { ...post, votes: newVotes, userVote: null };
