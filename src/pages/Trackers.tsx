@@ -14,6 +14,7 @@ import {
   Ruler,
   NotebookPen,
 } from "lucide-react";
+import { usePreferences } from "../context/PreferencesContext";
 
 interface TrackerCard {
   id: string;
@@ -113,45 +114,57 @@ const trackers: TrackerCard[] = [
 ];
 
 export const Trackers = () => {
-
+  const { mode } = usePreferences();
   const onTrackerOpen = (trackerId: string) => {
     console.log(`Tracker ${trackerId} opened`);
   };
 
   return (
-    <div className="container max-w-5xl px-4 py-8 pb-20">
-      <h1 className="text-2xl font-bold text-foreground mb-2">Health Trackers</h1>
-      <p className="text-muted-foreground text-sm mb-6">
-        Track your pregnancy, postpartum recovery, and your baby's daily routine.
-      </p>
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-20">
+      <div className="container max-w-5xl px-4 py-8">
+        <h1 className="text-2xl font-bold text-foreground mb-2">Health Trackers</h1>
+        <p className="text-muted-foreground text-sm mb-6">
+          {mode === "baby"
+            ? "Track your pregnancy, postpartum recovery, and your baby's daily routine."
+            : "Track your own health, mood, and recovery. You can enable baby-focused trackers from your profile anytime."}
+        </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {trackers.map((tracker) => (
-          <Card
-            key={tracker.id}
-            className="bg-card shadow-sm rounded-lg cursor-pointer hover:shadow-md transition"
-            onClick={() => onTrackerOpen(tracker.id)}
-          >
-            <CardContent className="flex flex-row items-center gap-4 py-5">
-              {/* Icon */}
-              <div className="p-3 rounded-full bg-primary/10 text-primary">
-                <tracker.icon className="h-6 w-6" />
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+          {trackers
+            .filter((tracker) =>
+              mode === "baby"
+                ? true
+                : !["feeding", "growth", "meal"].includes(tracker.id)
+            )
+            .map((tracker) => (
+              <Card
+                key={tracker.id}
+                className="bg-card shadow-sm rounded-lg cursor-pointer hover:shadow-lg hover:-translate-y-1 transition border border-border/50"
+                onClick={() => onTrackerOpen(tracker.id)}
+              >
+                <CardContent className="flex flex-row items-center gap-4 py-5">
+                  {/* Icon */}
+                  <div className="p-3 rounded-full bg-primary/10 text-primary">
+                    <tracker.icon className="h-6 w-6" />
+                  </div>
 
-              {/* Text */}
-              <div className="flex flex-col flex-1">
-                <h3 className="font-medium text-lg">{tracker.name}</h3>
-                <p className="text-sm text-muted-foreground">{tracker.description}</p>
+                  {/* Text */}
+                  <div className="flex flex-col flex-1">
+                    <h3 className="font-medium text-lg">{tracker.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {tracker.description}
+                    </p>
 
-                {tracker.lastEntry && (
-                  <p className="text-xs mt-2 text-primary font-medium">
-                    {tracker.lastEntry}
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                    {tracker.lastEntry && (
+                      <p className="text-xs mt-2 text-primary font-medium">
+                        {tracker.lastEntry}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
       </div>
     </div>
   );

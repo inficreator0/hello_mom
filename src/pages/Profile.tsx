@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Edit, Calendar } from "lucide-react";
-import { usePosts } from "../context/PostsContext";
+import { Edit, Calendar, Baby, Sparkles } from "lucide-react";
 import PostCard from "../components/common/PostCard";
+import { useAuth } from "../context/AuthContext";
+import { usePostsStore } from "../store/postsStore";
+import Loader from "../components/common/Loader";
+import { usePreferences } from "../context/PreferencesContext";
 
 export const Profile = () => {
-  const { posts, refreshPosts, isLoading } = usePosts();
+  const { posts, refreshPosts, isLoading } = usePostsStore();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const { mode, setMode, babyName, babyStage, firstTimeMom, focusAreas } =
+    usePreferences();
 
   const [bio, setBio] = useState(
     "Mother of two, passionate about pregnancy health, mindful parenting, and wellness."
@@ -28,36 +36,52 @@ export const Profile = () => {
     0
   );
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
   useEffect(() => {
     refreshPosts();
   }, []);
 
   return (
-    <div className="container max-w-4xl px-4 py-8 pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-24">
+      <div className="container max-w-4xl px-4 py-8">
       {/* Profile Header */}
-      <div className="flex flex-col items-center mb-8 text-center">
-        <img
-          src={user.avatar}
-          alt="Profile"
-          className="w-24 h-24 rounded-full shadow-md"
-        />
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <img
+              src={user.avatar}
+              alt="Profile"
+              className="w-24 h-24 rounded-full shadow-md"
+            />
 
-        <h1 className="mt-4 text-2xl font-bold text-foreground">
-          {user.name}
-        </h1>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                {user.name}
+              </h1>
 
-        <div className="flex items-center text-muted-foreground text-sm mt-1">
-          <Calendar className="w-4 h-4 mr-2" />
-          Joined{" "}
-          {new Date(user.joinedAt).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-          })}
+              <div className="flex items-center text-muted-foreground text-sm mt-1">
+                <Calendar className="w-4 h-4 mr-2" />
+                Joined{" "}
+                {new Date(user.joinedAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                })}
+              </div>
+            </div>
+          </div>
+
+          <Button variant="outline" onClick={handleLogout}>
+            Logout
+          </Button>
         </div>
       </div>
 
       {/* BIO SECTION */}
-      <Card className="mb-8 bg-card text-card-foreground">
+      <Card className="mb-8 bg-card text-card-foreground border border-border/60 shadow-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
         <CardContent className="pt-6">
           <div className="flex justify-between items-start">
             <h2 className="text-lg font-semibold">About Me</h2>
@@ -95,6 +119,99 @@ export const Profile = () => {
         </CardContent>
       </Card>
 
+      {/* Feature settings */}
+      <Card className="mb-8 bg-card text-card-foreground border border-border/60 shadow-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
+        <CardContent className="pt-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Baby className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Baby features</h2>
+            </div>
+            <span className="text-xs rounded-full px-2 py-1 bg-muted text-muted-foreground">
+              {mode === "baby" ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Control whether baby-focused trackers and tools are highlighted in your app.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant={mode === "baby" ? "default" : "outline"}
+              onClick={() => setMode("baby")}
+            >
+              Enable baby mode
+            </Button>
+            <Button
+              size="sm"
+              variant={mode === "community" ? "default" : "outline"}
+              onClick={() => setMode("community")}
+            >
+              Community only
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Baby info (if available) */}
+      {mode === "baby" && (babyName || babyStage || firstTimeMom || (focusAreas && focusAreas.length > 0)) && (
+        <Card className="mb-8 bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 border border-primary/30 shadow-md animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-100">
+          <CardContent className="pt-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">Baby profile</h2>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              We use this to highlight the most relevant tools and trackers for you.
+            </p>
+            <div className="flex flex-wrap gap-3 text-sm">
+              {babyName && (
+                <div className="px-3 py-1 rounded-full bg-background/70 border border-primary/30">
+                  <span className="font-medium">Name:</span> {babyName}
+                </div>
+              )}
+              {babyStage && (
+                <div className="px-3 py-1 rounded-full bg-background/70 border border-primary/30">
+                  <span className="font-medium">Stage:</span>{" "}
+                  {babyStage === "newborn"
+                    ? "0–3 months"
+                    : babyStage === "infant"
+                    ? "3–12 months"
+                    : babyStage === "toddler"
+                    ? "1–3 years"
+                    : "Pregnancy"}
+                </div>
+              )}
+              {firstTimeMom && (
+                <div className="px-3 py-1 rounded-full bg-background/70 border border-primary/30">
+                  <span className="font-medium">First-time mom:</span>{" "}
+                  {firstTimeMom === "yes" ? "Yes" : "No"}
+                </div>
+              )}
+            </div>
+            {focusAreas && focusAreas.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Current focus areas
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {focusAreas.map((area) => (
+                    <span
+                      key={area}
+                      className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs border border-primary/30"
+                    >
+                      {area}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* USER STATS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         <StatCard label="Posts" value={myPosts.length} />
@@ -111,8 +228,8 @@ export const Profile = () => {
 
       {isLoading ? (
         <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">Loading posts...</p>
+          <CardContent className="pt-4">
+            <Loader label="Loading your posts..." />
           </CardContent>
         </Card>
       ) : myPosts.length === 0 ? (
@@ -145,6 +262,7 @@ export const Profile = () => {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -67,6 +67,15 @@
   }
 }
 
+/* Hide scrollbars while keeping scroll behavior */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 /* Safe area insets for mobile devices */
 @supports (padding: max(0px)) {
   .safe-area-inset-bottom {

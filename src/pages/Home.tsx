@@ -37,9 +37,9 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="text-center mb-8">
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-20">
+      <div className="container mx-auto px-4 py-10 max-w-6xl">
+        <div className="text-center mb-10 animate-in fade-in-0 slide-in-from-top-2 duration-300">
           <div className="flex justify-center mb-4">
             <div className="rounded-full bg-primary/10 p-4">
               <Heart className="h-12 w-12 text-primary fill-primary" />
@@ -51,13 +51,13 @@ const Home = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
           {features.map((feature) => {
             const Icon = feature.icon;
             return (
               <Card
                 key={feature.title}
-                className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 flex flex-col"
+                className="cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all flex flex-col border border-border/50 bg-card/95"
                 onClick={() => navigate(feature.path)}
               >
                 <CardHeader className="flex-1">

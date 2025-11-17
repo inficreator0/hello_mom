@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Phone, Calendar, Stethoscope } from "lucide-react";
+import { Phone, Calendar, Stethoscope, Sparkles } from "lucide-react";
 
 interface Doctor {
   id: number;
@@ -69,20 +69,28 @@ export const Consultations = () => {
   };
 
   return (
-    <div className="container max-w-5xl px-4 py-8 pb-20">
-      <h1 className="text-2xl font-bold text-foreground mb-2">
-        Consult a Doctor
-      </h1>
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-20">
+      <div className="container max-w-5xl px-4 py-8">
+        <div className="flex items-center justify-between mb-6 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-1">
+              Consult a Doctor
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Book appointments or talk to trusted experts instantly.
+            </p>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span>Trusted, curated experts</span>
+          </div>
+        </div>
 
-      <p className="text-muted-foreground text-sm mb-6">
-        Book appointments or talk to trusted experts instantly.
-      </p>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
         {doctors.map((doctor) => (
           <Card
             key={doctor.id}
-            className="bg-card text-card-foreground shadow-sm rounded-lg"
+            className="bg-card text-card-foreground shadow-sm rounded-lg border border-border/50 hover:shadow-lg hover:-translate-y-1 transition"
           >
             <CardContent className="pt-6">
               {/* Avatar */}
@@ -135,6 +143,7 @@ export const Consultations = () => {
             </CardContent>
           </Card>
         ))}
+        </div>
       </div>
     </div>
   );

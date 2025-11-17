@@ -1,4 +1,4 @@
-import { Home, Users, Activity } from "lucide-react";
+import { Home, Users, Activity, FileText, Stethoscope } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "../lib/utils";
 
@@ -9,8 +9,8 @@ const BottomNav = () => {
   const navItems = [
     { path: "/community", icon: Home, label: "Home" },
     { path: "/trackers", icon: Activity, label: "Trackers" },
-    { path: "/articles", icon: Users, label: "Articles" },
-    { path: "/consult", icon: Users, label: "Consultations" },
+    { path: "/articles", icon: FileText, label: "Articles" },
+    { path: "/consult", icon: Stethoscope, label: "Consults" },
     { path: "/profile", icon: Users, label: "Profile" },
   ];
 
@@ -25,7 +25,7 @@ const BottomNav = () => {
               key={item.path}
               onClick={() => navigate(item.path)}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full transition-colors",
+                "relative flex flex-col items-center justify-center flex-1 h-full transition-colors",
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"

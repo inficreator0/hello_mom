@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -12,7 +13,7 @@ interface PostFormDialogProps {
   description: string;
   formData: PostFormData;
   onFormDataChange: (data: PostFormData) => void;
-  onSubmit: () => void;
+  onSubmit: () => void | Promise<void>;
   categories: CommunityCategory[];
   submitLabel?: string;
   cancelLabel?: string;
@@ -30,9 +31,24 @@ const PostFormDialog = ({
   submitLabel = "Submit",
   cancelLabel = "Cancel",
 }: PostFormDialogProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleChange = (field: keyof PostFormData, value: string) => {
     onFormDataChange({ ...formData, [field]: value });
   };
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isDisabled =
+    isSubmitting || !formData.title.trim() || !formData.content.trim();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,6 +65,7 @@ const PostFormDialog = ({
               placeholder="Enter post title"
               value={formData.title}
               onChange={(e) => handleChange("title", e.target.value)}
+              disabled={isSubmitting}
             />
           </div>
           <div className="grid gap-2">
@@ -58,6 +75,7 @@ const PostFormDialog = ({
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={formData.category}
               onChange={(e) => handleChange("category", e.target.value)}
+              disabled={isSubmitting}
             >
               {categories.filter((c) => c !== "All").map((cat) => (
                 <option key={cat} value={cat}>
@@ -73,6 +91,7 @@ const PostFormDialog = ({
               placeholder="e.g., Question, Advice, Vent"
               value={formData.flair || ""}
               onChange={(e) => handleChange("flair", e.target.value)}
+              disabled={isSubmitting}
             />
           </div>
           <div className="grid gap-2">
@@ -83,14 +102,24 @@ const PostFormDialog = ({
               value={formData.content}
               onChange={(e) => handleChange("content", e.target.value)}
               rows={6}
+              disabled={isSubmitting}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
             {cancelLabel}
           </Button>
-          <Button onClick={onSubmit}>{submitLabel}</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isDisabled}
+          >
+            {isSubmitting ? "Saving..." : submitLabel}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

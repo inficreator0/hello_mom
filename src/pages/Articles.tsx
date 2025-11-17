@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
-import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { Search } from "lucide-react";
+import SearchBar from "../components/common/SearchBar";
 
 interface Article {
   id: number;
@@ -160,51 +159,48 @@ export const Articles = () => {
   });
 
   return (
-    <div className="container max-w-4xl px-4 py-8 pb-20">
-      <h1 className="text-2xl font-bold text-foreground mb-2">
-        Helpful Articles
-      </h1>
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-20">
+      <div className="container max-w-4xl px-4 py-8">
+        <h1 className="text-2xl font-bold text-foreground mb-1">
+          Helpful Articles
+        </h1>
 
-      <p className="text-muted-foreground text-sm mb-6">
-        Learn more about your body, pregnancy, recovery, and your baby — from experts.
-      </p>
+        <p className="text-muted-foreground text-sm mb-6">
+          Learn more about your body, pregnancy, recovery, and your baby — from experts.
+        </p>
 
-      {/* Search Bar */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-          <Input
+        {/* Search Bar */}
+        <div className="mb-4">
+          <SearchBar
             placeholder="Search articles..."
-            className="pl-10"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={setSearchQuery}
           />
         </div>
-      </div>
 
-      {/* Category Tabs */}
-      <div className="flex overflow-x-auto gap-2 mb-6 pb-1">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 text-sm rounded-full border whitespace-nowrap ${
-              selectedCategory === cat
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-muted text-muted-foreground border-muted"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+        {/* Category Tabs */}
+        <div className="flex overflow-x-auto scrollbar-hide gap-2 mb-6 pb-1">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 text-sm rounded-full border whitespace-nowrap transition ${
+                selectedCategory === cat
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-muted text-muted-foreground border-muted hover:border-primary/60"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
-      {/* Article List */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* Article List */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
         {filteredArticles.map((article) => (
           <Card
             key={article.id}
-            className="overflow-hidden bg-card shadow-sm hover:shadow-md transition"
+            className="overflow-hidden bg-card shadow-sm hover:shadow-lg hover:-translate-y-1 transition border border-border/60"
           >
             {/* Thumbnail */}
             <img
@@ -232,11 +228,12 @@ export const Articles = () => {
         ))}
       </div>
 
-      {filteredArticles.length === 0 && (
-        <p className="text-center text-muted-foreground mt-10">
-          No articles found.
-        </p>
-      )}
+        {filteredArticles.length === 0 && (
+          <p className="text-center text-muted-foreground mt-10">
+            No articles found.
+          </p>
+        )}
+      </div>
     </div>
   );
 };

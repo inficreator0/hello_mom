@@ -1,20 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Post, PostFormData, Comment, CommunityCategory } from "../types";
-import { usePosts } from "../context/PostsContext";
-import { postsAPI, commentsAPI } from "../lib/api";
+import { postsAPI, commentsAPI } from "../lib/api/posts";
 import SearchBar from "./common/SearchBar";
 import PostCard from "./common/PostCard";
 import PostFormDialog from "./common/PostFormDialog";
 import CommentDialog from "./common/CommentDialog";
 import CategoryTabs from "./common/CategoryTabs";
+import { usePostsStore, transformPost } from "../store/postsStore";
+import { useToast } from "../context/ToastContext";
+import Loader from "./common/Loader";
 
 const CATEGORIES: CommunityCategory[] = ["All", "Pregnancy", "Postpartum", "Feeding", "Sleep", "Mental Health", "Recovery", "Milestones"];
 
 const Community = () => {
-  const { posts, setPosts, updatePost, refreshPosts, isLoading } = usePosts();
+  const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost } = usePostsStore();
+  const { showToast } = useToast();
 
   const [selectedCategory, setSelectedCategory] = useState<CommunityCategory>("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,6 +34,13 @@ const Community = () => {
   });
   const [commentText, setCommentText] = useState("");
 
+  // Load posts when the Community page mounts (only if not already loaded)
+  useEffect(() => {
+    if (!hasLoaded) {
+      void refreshPosts();
+    }
+  }, [hasLoaded, refreshPosts]);
+
   const filteredPosts = posts.filter((post) => {
     const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
     const matchesSearch =
@@ -46,18 +56,24 @@ const Community = () => {
     }
 
     try {
-      const response = await postsAPI.create({
+      const backendPost = await postsAPI.create({
         title: formData.title,
         content: formData.content,
       });
-      
-      // Refresh posts to get the new post with all data
-      await refreshPosts();
+
+      // Add the new post locally without refetching the entire list
+      const newPost = {
+        ...transformPost(backendPost),
+        category: formData.category,
+      };
+      addPost(newPost);
+
       setFormData({ title: "", content: "", category: "All", flair: "" });
       setIsAddDialogOpen(false);
+      showToast("Post created successfully", "success");
     } catch (error: any) {
       console.error("Error creating post:", error);
-      alert(error.message || "Failed to create post. Please try again.");
+      showToast(error.message || "Failed to create post. Please try again.", "error");
     }
   };
 
@@ -67,19 +83,31 @@ const Community = () => {
     }
 
     try {
-      await postsAPI.update(String(editingPost.id), {
+      const backendPost = await postsAPI.update(String(editingPost.id), {
         title: formData.title,
         content: formData.content,
       });
-      
-      // Refresh posts to get updated data
-      await refreshPosts();
+
+      // Update the post locally without refetching the entire list
+      updatePost(editingPost.id, (post) => {
+        return {
+          ...post,
+          title: formData.title,
+          content: formData.content,
+          category: formData.category,
+          updatedAt: backendPost.updatedAt
+            ? new Date(backendPost.updatedAt)
+            : new Date(),
+        };
+      });
+
       setEditingPost(null);
       setFormData({ title: "", content: "", category: "All", flair: "" });
       setIsEditDialogOpen(false);
+      showToast("Post updated", "success");
     } catch (error: any) {
       console.error("Error updating post:", error);
-      alert(error.message || "Failed to update post. Please try again.");
+      showToast(error.message || "Failed to update post. Please try again.", "error");
     }
   };
 
@@ -87,24 +115,27 @@ const Community = () => {
     if (window.confirm("Are you sure you want to delete this post?")) {
       try {
         await postsAPI.delete(String(id));
-        await refreshPosts();
+        removePost(id);
+        showToast("Post deleted", "success");
       } catch (error: any) {
         console.error("Error deleting post:", error);
-        alert(error.message || "Failed to delete post. Please try again.");
+        showToast(error.message || "Failed to delete post. Please try again.", "error");
       }
     }
   };
 
-  const handleVote = (postId: string | number, voteType: "up" | "down") => {
-    updatePost(postId as string, (post) => { //TODO: fix this
+  const handleVote = async (postId: string | number, voteType: "up" | "down") => {
+    const postIdStr = String(postId);
+    const currentPost = posts.find((p) => String(p.id) === postIdStr);
+    if (!currentPost) return;
+
+    const previousVote = currentPost.userVote;
+    const previousVotes = currentPost.votes;
+
+    // Optimistic UI update
+    updatePost(postId, (post) => {
       const currentVote = post.userVote;
       let newVotes = post.votes;
-
-      try {
-        if(voteType === 'up')
-        postsAPI.upvote(post.id as string)
-      else postsAPI.downvote(post.id as string)
-      } catch {}
 
       if (currentVote === voteType) {
         newVotes += voteType === "up" ? -1 : 1;
@@ -117,6 +148,24 @@ const Community = () => {
         return { ...post, votes: newVotes, userVote: voteType };
       }
     });
+
+    // Persist vote to backend; rollback on failure
+    try {
+      if (voteType === "up") {
+        await postsAPI.upvote(postIdStr);
+      } else {
+        await postsAPI.downvote(postIdStr);
+      }
+    } catch (error: any) {
+      console.error("Error updating vote:", error);
+      // Roll back optimistic update
+      updatePost(postId, (post) => ({
+        ...post,
+        votes: previousVotes,
+        userVote: previousVote ?? null,
+      }));
+      alert(error.message || "Failed to update vote. Please try again.");
+    }
   };
 
   const handleBookmark = (postId: string | number) => {
@@ -195,33 +244,34 @@ const Community = () => {
   });
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl pb-20">
-      <div className="flex flex-row md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-20">
+      <div className="container mx-auto py-8 px-4 max-w-6xl animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+        <div className="flex flex-row md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground mb-2">Community</h1>
           <p className="text-xs text-muted-foreground">Share, connect, and support each other</p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Post
-        </Button>
-      </div>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Post
+          </Button>
+        </div>
 
-      <div className="mb-6">
-        <SearchBar
-          placeholder="Search posts..."
-          value={searchQuery}
-          onChange={setSearchQuery}
-          className="mb-4"
-        />
-        <CategoryTabs
-          categories={CATEGORIES}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-        />
-      </div>
+        <div className="mb-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
+          <SearchBar
+            placeholder="Search posts..."
+            value={searchQuery}
+            onChange={setSearchQuery}
+            className="mb-4"
+          />
+          <CategoryTabs
+            categories={CATEGORIES}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
+        </div>
 
-      <PostFormDialog
+        <PostFormDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         title="Create New Post"
@@ -233,7 +283,7 @@ const Community = () => {
         submitLabel="Post"
       />
 
-      <PostFormDialog
+        <PostFormDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         title="Edit Post"
@@ -245,7 +295,7 @@ const Community = () => {
         submitLabel="Update"
       />
 
-      <CommentDialog
+        <CommentDialog
         open={isCommentDialogOpen}
         onOpenChange={setIsCommentDialogOpen}
         value={commentText}
@@ -253,11 +303,11 @@ const Community = () => {
         onSubmit={handleAddComment}
       />
 
-      <div className="space-y-4">
+        <div className="space-y-4">
         {isLoading ? (
           <Card>
-            <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground">Loading posts...</p>
+            <CardContent className="pt-4">
+              <Loader label="Fetching community posts..." />
             </CardContent>
           </Card>
         ) : sortedPosts.length === 0 ? (
@@ -283,9 +333,11 @@ const Community = () => {
             />
           ))
         )}
+        </div>
       </div>
     </div>
   );
 };
 
 export default Community;
+

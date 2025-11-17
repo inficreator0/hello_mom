@@ -21,6 +21,7 @@ import {
 import { Badge } from "../ui/badge";
 import { Post, Comment } from "../../types";
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import ReplyDialog from "./ReplyDialog";
 
 interface PostCardProps {
@@ -51,6 +52,7 @@ const PostCard = ({
   showActions = true,
 }: PostCardProps) => {
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const { user } = useAuth();
 
   const defaultFormatDate = (date: Date | string) => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
@@ -65,6 +67,12 @@ const PostCard = ({
 
   const format = formatDate || defaultFormatDate;
   const navigate = useNavigate();
+
+  const isAuthor =
+    !!user &&
+    (user.userId === post.authorId ||
+      user.id === post.authorId ||
+      (!!user.username && !!post.authorUsername && user.username === post.authorUsername));
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -91,7 +99,7 @@ const PostCard = ({
             <Badge variant="outline">{post.category}</Badge>
           </div>
 
-          {showActions && (
+          {showActions && isAuthor && (
             <div className="flex">
               {onEdit && (
                 <Button variant="ghost" size="icon" onClick={() => onEdit(post)}>

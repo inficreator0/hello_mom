@@ -1,89 +1,96 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Home from './pages/Home';
 import Community from './components/Community';
 import {Trackers} from './pages/Trackers';
 import PostDetail from './pages/PostDetail';
 import Login from './pages/Login';
 import BottomNav from './components/BottomNav';
 import ProtectedRoute from './components/ProtectedRoute';
-import { PostsProvider } from './context/PostsContext';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import { PreferencesProvider } from './context/PreferencesContext';
 import './App.css';
 import { Profile } from './pages/Profile';
 import { Consultations } from './pages/Consultations';
 import { Articles } from './pages/Articles';
+import { Onboarding } from './pages/Onboarding';
 
 // Component to handle authenticated routes
 const AuthenticatedApp = () => {
   return (
-    <PostsProvider>
-      <div className="min-h-screen bg-background pb-16">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Community />
-              </ProtectedRoute>
-            }
-          />
-          {/* <Route
-            path="/community"
-            element={
-              <ProtectedRoute>
-                <Community />
-              </ProtectedRoute>
-            }
-          /> */}
-          <Route
-            path="/post/:id"
-            element={
-              <ProtectedRoute>
-                <PostDetail />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/trackers"
-            element={
-              <ProtectedRoute>
-                <Trackers />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/consult"
-            element={
-              <ProtectedRoute>
-                <Consultations />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/articles"
-            element={
-              <ProtectedRoute>
-                <Articles />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <ProtectedRoute>
-          <BottomNav />
-        </ProtectedRoute>
-      </div>
-    </PostsProvider>
+    <div className="min-h-screen bg-background pb-16">
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Community />
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route
+          path="/community"
+          element={
+            <ProtectedRoute>
+              <Community />
+            </ProtectedRoute>
+          }
+        /> */}
+        <Route
+          path="/post/:id"
+          element={
+            <ProtectedRoute>
+              <PostDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trackers"
+          element={
+            <ProtectedRoute>
+              <Trackers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/consult"
+          element={
+            <ProtectedRoute>
+              <Consultations />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/articles"
+          element={
+            <ProtectedRoute>
+              <Articles />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <ProtectedRoute>
+        <BottomNav />
+      </ProtectedRoute>
+    </div>
   );
 };
 
@@ -91,7 +98,11 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AuthenticatedApp />
+        <PreferencesProvider>
+          <ToastProvider>
+            <AuthenticatedApp />
+          </ToastProvider>
+        </PreferencesProvider>
       </AuthProvider>
     </Router>
   );

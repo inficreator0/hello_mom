@@ -1,32 +1,20 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { create } from "zustand";
 import { Post, Comment } from "../types";
-import { postsAPI, commentsAPI } from "../lib/api";
+import { postsAPI, commentsAPI } from "../lib/api/posts";
 
-interface PostsContextType {
+interface PostsState {
   posts: Post[];
-  setPosts: React.Dispatch<React.SetStateAction<Post[]>>;
-  getPostById: (id: string) => Post | undefined;
-  updatePost: (postId: string, updater: (post: Post) => Post) => void;
-  refreshPosts: () => Promise<void>;
   isLoading: boolean;
-}
-
-const PostsContext = createContext<PostsContextType | undefined>(undefined);
-
-export const usePosts = () => {
-  const context = useContext(PostsContext);
-  if (!context) {
-    throw new Error("usePosts must be used within a PostsProvider");
-  }
-  return context;
-};
-
-interface PostsProviderProps {
-  children: ReactNode;
+  hasLoaded: boolean;
+  refreshPosts: () => Promise<void>;
+  getPostById: (id: string | number) => Post | undefined;
+  updatePost: (postId: string | number, updater: (post: Post) => Post) => void;
+  addPost: (post: Post) => void;
+  removePost: (postId: string | number) => void;
 }
 
 // Transform backend post response to frontend Post format
-const transformPost = (backendPost: any): Post => {
+export const transformPost = (backendPost: any): Post => {
   return {
     id: backendPost.id,
     title: backendPost.title,
@@ -48,11 +36,11 @@ const transformPost = (backendPost: any): Post => {
 };
 
 // Transform backend comment response to frontend Comment format
-const transformComment = (backendComment: any): Comment => {
+export const transformComment = (backendComment: any): Comment => {
   const replies = backendComment.replies
     ? backendComment.replies.map(transformComment)
     : [];
-  
+
   return {
     id: backendComment.id,
     content: backendComment.content,
@@ -71,16 +59,17 @@ const transformComment = (backendComment: any): Comment => {
   };
 };
 
-export const PostsProvider = ({ children }: PostsProviderProps) => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const usePostsStore = create<PostsState>((set, get) => ({
+  posts: [],
+  isLoading: false,
+  hasLoaded: false,
 
-  const refreshPosts = async () => {
+  refreshPosts: async () => {
     try {
-      setIsLoading(true);
+      set({ isLoading: true });
       const response = await postsAPI.getAll(0, 50);
       const transformedPosts = response.content.map(transformPost);
-      
+
       // Load comments for each post
       const postsWithComments = await Promise.all(
         transformedPosts.map(async (post) => {
@@ -96,36 +85,38 @@ export const PostsProvider = ({ children }: PostsProviderProps) => {
           }
         })
       );
-      
-      setPosts(postsWithComments);
+
+      set({ posts: postsWithComments, hasLoaded: true });
     } catch (error) {
       console.error("Error fetching posts:", error);
-      setPosts([]);
+      set({ posts: [] });
     } finally {
-      setIsLoading(false);
+      set({ isLoading: false });
     }
-  };
+  },
 
-  useEffect(() => {
-    refreshPosts();
-  }, []);
-
-  const getPostById = (id: string | number) => {
+  getPostById: (id: string | number) => {
+    const { posts } = get();
     return posts.find((post) => String(post.id) === String(id));
-  };
+  },
 
-  const updatePost = (postId: string | number, updater: (post: Post) => Post) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) => (String(post.id) === String(postId) ? updater(post) : post))
-    );
-  };
+  updatePost: (postId: string | number, updater: (post: Post) => Post) => {
+    set((state) => ({
+      posts: state.posts.map((post) =>
+        String(post.id) === String(postId) ? updater(post) : post
+      ),
+    }));
+  },
+  addPost: (post: Post) => {
+    set((state) => ({
+      posts: [post, ...state.posts],
+    }));
+  },
+  removePost: (postId: string | number) => {
+    set((state) => ({
+      posts: state.posts.filter((post) => String(post.id) !== String(postId)),
+    }));
+  },
+}));
 
-  return (
-    <PostsContext.Provider
-      value={{ posts, setPosts, getPostById, updatePost, refreshPosts, isLoading }}
-    >
-      {children}
-    </PostsContext.Provider>
-  );
-};
 

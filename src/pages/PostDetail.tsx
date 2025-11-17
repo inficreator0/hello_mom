@@ -3,26 +3,29 @@ import { ArrowLeft, Trash2, ChevronUp, ChevronDown, MessageCircle, Bookmark, Boo
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { usePosts } from "../context/PostsContext";
-import { postsAPI, commentsAPI } from "../lib/api";
+import { usePostsStore } from "../store/postsStore";
+import { postsAPI, commentsAPI } from "../lib/api/posts";
 import CommentDialog from "../components/common/CommentDialog";
 import ReplyDialog from "../components/common/ReplyDialog";
 import { useState, useEffect } from "react";
 import { Comment } from "../types";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPostById, updatePost, refreshPosts } = usePosts();
+  const { getPostById, updatePost, refreshPosts, removePost } = usePostsStore();
   const post = id ? getPostById(id) : undefined;
+  const { user } = useAuth();
+  const { showToast } = useToast();
 
-  // Load post details and comments if not already loaded
+  // Ensure we have the latest post + comments when navigating directly to this page
   useEffect(() => {
-    if (id && post) {
-      // Post is already loaded, but ensure comments are loaded
-      refreshPosts();
+    if (id && !post) {
+      void refreshPosts();
     }
-  }, [id]);
+  }, [id, post, refreshPosts]);
 
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
@@ -49,6 +52,12 @@ const PostDetail = () => {
     );
   }
 
+  const isAuthor =
+    !!user &&
+    (user.userId === post.authorId ||
+      user.id === post.authorId ||
+      (!!user.username && !!post.authorUsername && user.username === post.authorUsername));
+
   const formatDate = (date: Date | string) => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
     return new Intl.DateTimeFormat("en-US", {
@@ -60,8 +69,12 @@ const PostDetail = () => {
     }).format(dateObj);
   };
 
-  const handleVote = (voteType: "up" | "down") => {
-    updatePost(post.id as string, (currentPost) => { //TODO: fix this
+  const handleVote = async (voteType: "up" | "down") => {
+    const previousVote = post.userVote;
+    const previousVotes = post.votes;
+
+    // Optimistic UI update
+    updatePost(post.id, (currentPost) => {
       const currentVote = currentPost.userVote;
       let newVotes = currentPost.votes;
 
@@ -76,6 +89,24 @@ const PostDetail = () => {
         return { ...currentPost, votes: newVotes, userVote: voteType };
       }
     });
+
+    // Persist vote to backend; rollback on failure
+    try {
+      if (voteType === "up") {
+        await postsAPI.upvote(String(post.id));
+      } else {
+        await postsAPI.downvote(String(post.id));
+      }
+    } catch (error: any) {
+      console.error("Error updating vote:", error);
+      // Roll back optimistic update
+      updatePost(post.id, (currentPost) => ({
+        ...currentPost,
+        votes: previousVotes,
+        userVote: previousVote ?? null,
+      }));
+      alert(error.message || "Failed to update vote. Please try again.");
+    }
   };
 
   const handleBookmark = () => {
@@ -96,9 +127,10 @@ const PostDetail = () => {
       await refreshPosts();
       setCommentText("");
       setIsCommentDialogOpen(false);
+      showToast("Comment added", "success");
     } catch (error: any) {
       console.error("Error adding comment:", error);
-      alert(error.message || "Failed to add comment. Please try again.");
+      showToast(error.message || "Failed to add comment. Please try again.", "error");
     }
   };
 
@@ -115,9 +147,10 @@ const PostDetail = () => {
       setReplyText("");
       setIsReplyDialogOpen(false);
       setSelectedCommentId(null);
+      showToast("Reply added", "success");
     } catch (error: any) {
       console.error("Error adding reply:", error);
-      alert(error.message || "Failed to add reply. Please try again.");
+      showToast(error.message || "Failed to add reply. Please try again.", "error");
     }
   };
 
@@ -132,16 +165,18 @@ const PostDetail = () => {
     if (window.confirm("Are you sure you want to delete this post?")) {
       try {
         await postsAPI.delete(id);
+        removePost(post.id);
         navigate("/community");
+        showToast("Post deleted", "success");
       } catch (error: any) {
         console.error("Error deleting post:", error);
-        alert(error.message || "Failed to delete post. Please try again.");
+        showToast(error.message || "Failed to delete post. Please try again.", "error");
       }
     }
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-20">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <Button
           variant="ghost"
@@ -152,7 +187,7 @@ const PostDetail = () => {
           Back to Community
         </Button>
 
-        <Card className="mb-6">
+        <Card className="mb-6 border border-border/60 shadow-sm bg-card/95 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
           <CardHeader>
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1">
@@ -168,16 +203,18 @@ const PostDetail = () => {
                 {post.flair && <Badge variant="secondary">{post.flair}</Badge>}
                   <Badge variant="outline">{post.category}</Badge>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleDelete}
-                  aria-label="Delete post"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+              {isAuthor && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleDelete}
+                    aria-label="Delete post"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -238,7 +275,7 @@ const PostDetail = () => {
           </CardContent>
         </Card>
 
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">
               Comments ({post.comments.length})
@@ -299,7 +336,7 @@ const CommentItem = ({
 }) => {
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const { refreshPosts } = usePosts();
+  const { refreshPosts } = usePostsStore();
 
   const handleReplySubmit = async () => {
     if (!replyText.trim()) return;

@@ -1,5 +1,5 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 
@@ -10,7 +10,7 @@ interface CommentDialogProps {
   description?: string;
   value: string;
   onChange: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: () => void | Promise<void>;
   submitLabel?: string;
   cancelLabel?: string;
   placeholder?: string;
@@ -28,6 +28,18 @@ const CommentDialog = ({
   cancelLabel = "Cancel",
   placeholder = "Write your comment here...",
 }: CommentDialogProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -43,14 +55,24 @@ const CommentDialog = ({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               rows={4}
+              disabled={isSubmitting}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
             {cancelLabel}
           </Button>
-          <Button onClick={onSubmit}>{submitLabel}</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !value.trim()}
+          >
+            {isSubmitting ? "Posting..." : submitLabel}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

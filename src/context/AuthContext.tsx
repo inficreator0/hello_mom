@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User } from "../types";
-import { authAPI, setToken, removeToken } from "../lib/api";
+import { authAPI } from "../lib/api/auth";
+import { clearAuthStorage } from "../lib/http";
 
 interface AuthContextType {
   user: User | null;
@@ -64,7 +65,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         name: response.username,
       };
       
-      setToken(response.token);
       setUser(newUser);
       localStorage.setItem("user", JSON.stringify(newUser));
       return true;
@@ -92,7 +92,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         name: response.username,
       };
       
-      setToken(response.token);
       setUser(newUser);
       localStorage.setItem("user", JSON.stringify(newUser));
       return true;
@@ -104,8 +103,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = () => {
     setUser(null);
-    removeToken();
-    localStorage.removeItem("user");
+    clearAuthStorage();
   };
 
   return (

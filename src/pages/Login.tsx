@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { usePreferences } from "../context/PreferencesContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Heart } from "lucide-react";
+import Loader from "../components/common/Loader";
 
 const Login = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -18,13 +20,14 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, register, isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { onboardingCompleted } = usePreferences();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      navigate("/", { replace: true });
+      navigate(onboardingCompleted ? "/" : "/onboarding", { replace: true });
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, onboardingCompleted, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +38,7 @@ const Login = () => {
       if (isLoginMode) {
         const success = await login(username, password);
         if (success) {
-          navigate("/");
+          navigate(onboardingCompleted ? "/" : "/onboarding");
         }
       } else {
         if (!username.trim() || !email.trim() || !password.trim() || !firstName.trim() || !lastName.trim()) {
@@ -51,7 +54,7 @@ const Login = () => {
           lastName: lastName.trim(),
         });
         if (success) {
-          navigate("/");
+          navigate("/onboarding");
         }
       }
     } catch (err: any) {
@@ -63,11 +66,7 @@ const Login = () => {
 
   // Show loading state while checking authentication
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
+    return <Loader fullScreen label="Preparing Hello Mom for you..." />;
   }
 
   // Don't render login form if already authenticated (will redirect)
@@ -76,7 +75,7 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background flex items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
