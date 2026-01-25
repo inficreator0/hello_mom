@@ -17,6 +17,7 @@ import { Onboarding } from './pages/Onboarding';
 import { PeriodTracker } from './pages/PeriodTracker';
 import { BabyWeightTracker } from './pages/BabyWeightTracker';
 import { ComingSoon } from './pages/ComingSoon';
+import { UpdatePrompt } from './components/UpdatePrompt';
 
 // Component to handle authenticated routes
 const AuthenticatedApp = () => {
@@ -117,6 +118,7 @@ const AuthenticatedApp = () => {
       <ProtectedRoute>
         <BottomNav />
       </ProtectedRoute>
+      <UpdatePrompt />
     </div>
   );
 };
