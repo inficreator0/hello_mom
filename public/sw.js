@@ -1,5 +1,5 @@
 // Service Worker for Hello Mom PWA
-const CACHE_NAME = 'hello-mom-v1';
+const CACHE_NAME = 'hello-mom-v2';
 const urlsToCache = [
   '/',
   '/static/css/main.css',
