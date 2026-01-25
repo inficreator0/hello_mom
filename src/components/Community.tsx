@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -36,19 +36,21 @@ const Community = () => {
 
   // Load posts when the Community page mounts (only if not already loaded)
   useEffect(() => {
-    if (!hasLoaded) {
+    if (!hasLoaded && !isLoading) {
       void refreshPosts();
     }
-  }, [hasLoaded, refreshPosts]);
+  }, [hasLoaded, isLoading, refreshPosts]);
 
-  const filteredPosts = posts.filter((post) => {
-    const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
-    const matchesSearch =
-      searchQuery === "" ||
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => {
+      const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
+      const matchesSearch =
+        searchQuery === "" ||
+        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.content.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [posts, selectedCategory, searchQuery]);
 
   const handleAddPost = async () => {
     if (!formData.title.trim() || !formData.content.trim()) {
@@ -182,7 +184,7 @@ const Community = () => {
       await commentsAPI.create(String(selectedPostId), {
         content: commentText,
       });
-      
+
       // Refresh posts to get updated comments
       await refreshPosts();
       setCommentText("");
@@ -200,7 +202,7 @@ const Community = () => {
         content: replyContent,
         parentCommentId: Number(commentId),
       });
-      
+
       // Refresh posts to get updated comments
       await refreshPosts();
     } catch (error: any) {
@@ -236,21 +238,17 @@ const Community = () => {
     }).format(dateObj);
   };
 
-  const sortedPosts = [...filteredPosts].sort((a, b) => {
-    if (b.votes !== a.votes) return b.votes - a.votes;
-    const dateA = typeof a.createdAt === "string" ? new Date(a.createdAt).getTime() : a.createdAt.getTime();
-    const dateB = typeof b.createdAt === "string" ? new Date(b.createdAt).getTime() : b.createdAt.getTime();
-    return dateB - dateA;
-  });
+  // Posts are already sorted by backend (createdAt DESC) and store preserves order
+  const sortedPosts = filteredPosts;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-20">
       <div className="container mx-auto py-8 px-4 max-w-6xl animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
         <div className="flex flex-row md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Community</h1>
-          <p className="text-xs text-muted-foreground">Share, connect, and support each other</p>
-        </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Community</h1>
+            <p className="text-xs text-muted-foreground">Share, connect, and support each other</p>
+          </div>
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             New Post
@@ -272,67 +270,67 @@ const Community = () => {
         </div>
 
         <PostFormDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        title="Create New Post"
-        description="Share your thoughts, ask questions, or offer support to the community."
-        formData={formData}
-        onFormDataChange={setFormData}
-        onSubmit={handleAddPost}
-        categories={CATEGORIES}
-        submitLabel="Post"
-      />
+          open={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+          title="Create New Post"
+          description="Share your thoughts, ask questions, or offer support to the community."
+          formData={formData}
+          onFormDataChange={setFormData}
+          onSubmit={handleAddPost}
+          categories={CATEGORIES}
+          submitLabel="Post"
+        />
 
         <PostFormDialog
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        title="Edit Post"
-        description="Update your post content below."
-        formData={formData}
-        onFormDataChange={setFormData}
-        onSubmit={handleEditPost}
-        categories={CATEGORIES}
-        submitLabel="Update"
-      />
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          title="Edit Post"
+          description="Update your post content below."
+          formData={formData}
+          onFormDataChange={setFormData}
+          onSubmit={handleEditPost}
+          categories={CATEGORIES}
+          submitLabel="Update"
+        />
 
         <CommentDialog
-        open={isCommentDialogOpen}
-        onOpenChange={setIsCommentDialogOpen}
-        value={commentText}
-        onChange={setCommentText}
-        onSubmit={handleAddComment}
-      />
+          open={isCommentDialogOpen}
+          onOpenChange={setIsCommentDialogOpen}
+          value={commentText}
+          onChange={setCommentText}
+          onSubmit={handleAddComment}
+        />
 
         <div className="space-y-4">
-        {isLoading ? (
-          <Card>
-            <CardContent className="pt-4">
-              <Loader label="Fetching community posts..." />
-            </CardContent>
-          </Card>
-        ) : sortedPosts.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground">
-                {searchQuery ? "No posts found matching your search." : "No posts yet. Be the first to share!"}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          sortedPosts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onEdit={openEditDialog}
-              onDelete={handleDeletePost}
-              onVote={handleVote}
-              onBookmark={handleBookmark}
-              onComment={openCommentDialog}
-              onReply={handleReply}
-              formatDate={formatDate}
-            />
-          ))
-        )}
+          {isLoading ? (
+            <Card>
+              <CardContent className="pt-4">
+                <Loader label="Fetching community posts..." />
+              </CardContent>
+            </Card>
+          ) : sortedPosts.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">
+                  {searchQuery ? "No posts found matching your search." : "No posts yet. Be the first to share!"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            sortedPosts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onEdit={openEditDialog}
+                onDelete={handleDeletePost}
+                onVote={handleVote}
+                onBookmark={handleBookmark}
+                onComment={openCommentDialog}
+                onReply={handleReply}
+                formatDate={formatDate}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Trash2, ChevronUp, ChevronDown, MessageCircle, Bookmark, BookmarkCheck } from "lucide-react";
+import { ArrowLeft, Trash2, ChevronUp, ChevronDown, MessageCircle, Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -15,7 +15,7 @@ import { useToast } from "../context/ToastContext";
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPostById, updatePost, refreshPosts, removePost } = usePostsStore();
+  const { getPostById, updatePost, refreshPosts, removePost, loadComments } = usePostsStore();
   const post = id ? getPostById(id) : undefined;
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -26,6 +26,27 @@ const PostDetail = () => {
       void refreshPosts();
     }
   }, [id, post, refreshPosts]);
+
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [loadedPostId, setLoadedPostId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Only load comments if we have a post, and we haven't loaded them for this ID yet
+    if (id && post && loadedPostId !== id) {
+      const fetchComments = async () => {
+        setIsLoadingComments(true);
+        try {
+          await loadComments(id);
+          setLoadedPostId(id);
+        } catch (error) {
+          console.error("Failed to load comments:", error);
+        } finally {
+          setIsLoadingComments(false);
+        }
+      };
+      fetchComments();
+    }
+  }, [id, post, loadedPostId, loadComments]);
 
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
@@ -123,7 +144,7 @@ const PostDetail = () => {
       await commentsAPI.create(id, {
         content: commentText,
       });
-      
+
       await refreshPosts();
       setCommentText("");
       setIsCommentDialogOpen(false);
@@ -142,7 +163,7 @@ const PostDetail = () => {
         content: replyContent,
         parentCommentId: Number(commentId),
       });
-      
+
       await refreshPosts();
       setReplyText("");
       setIsReplyDialogOpen(false);
@@ -161,7 +182,7 @@ const PostDetail = () => {
 
   const handleDelete = async () => {
     if (!id) return;
-    
+
     if (window.confirm("Are you sure you want to delete this post?")) {
       try {
         await postsAPI.delete(id);
@@ -197,11 +218,11 @@ const PostDetail = () => {
                 </div>
                 <CardDescription className="text-[10px] mb-[4px]">
                   by {post.author} • {formatDate(post.createdAt)}
-                  {post.updatedAt ? ` • Updated`: ''}
+                  {post.updatedAt ? ` • Updated` : ''}
                 </CardDescription>
 
                 {post.flair && <Badge variant="secondary">{post.flair}</Badge>}
-                  <Badge variant="outline">{post.category}</Badge>
+                <Badge variant="outline">{post.category}</Badge>
               </div>
               {isAuthor && (
                 <div className="flex gap-2">
@@ -229,9 +250,8 @@ const PostDetail = () => {
                   aria-label="Upvote"
                 >
                   <ChevronUp
-                    className={`h-4 w-4 ${
-                      post.userVote === "up" ? "text-primary fill-primary" : ""
-                    }`}
+                    className={`h-4 w-4 ${post.userVote === "up" ? "text-primary fill-primary" : ""
+                      }`}
                   />
                 </Button>
                 <span className="font-semibold min-w-[2rem] text-center text-base">
@@ -245,9 +265,8 @@ const PostDetail = () => {
                   aria-label="Downvote"
                 >
                   <ChevronDown
-                    className={`h-4 w-4 ${
-                      post.userVote === "down" ? "text-destructive fill-destructive" : ""
-                    }`}
+                    className={`h-4 w-4 ${post.userVote === "down" ? "text-destructive fill-destructive" : ""
+                      }`}
                   />
                 </Button>
               </div>
@@ -282,7 +301,11 @@ const PostDetail = () => {
             </h2>
           </div>
 
-          {post.comments.length === 0 ? (
+          {isLoadingComments ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : post.comments.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
                 <p className="text-center text-muted-foreground">
@@ -346,7 +369,7 @@ const CommentItem = ({
         content: replyText,
         parentCommentId: Number(comment.id),
       });
-      
+
       // Refresh to get updated comments
       await refreshPosts();
       setReplyText("");

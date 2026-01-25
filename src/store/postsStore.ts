@@ -7,6 +7,7 @@ interface PostsState {
   isLoading: boolean;
   hasLoaded: boolean;
   refreshPosts: () => Promise<void>;
+  loadComments: (postId: string | number) => Promise<void>;
   getPostById: (id: string | number) => Post | undefined;
   updatePost: (postId: string | number, updater: (post: Post) => Post) => void;
   addPost: (post: Post) => void;
@@ -70,28 +71,33 @@ export const usePostsStore = create<PostsState>((set, get) => ({
       const response = await postsAPI.getAll(0, 50);
       const transformedPosts = response.content.map(transformPost);
 
-      // Load comments for each post
-      const postsWithComments = await Promise.all(
-        transformedPosts.map(async (post) => {
-          try {
-            const comments = await commentsAPI.getByPostId(String(post.id));
-            const transformedComments = comments
-              .filter((c: any) => !c.parentCommentId) // Only top-level comments
-              .map(transformComment);
-            return { ...post, comments: transformedComments };
-          } catch (error) {
-            console.error(`Error loading comments for post ${post.id}:`, error);
-            return post;
-          }
-        })
-      );
-
-      set({ posts: postsWithComments, hasLoaded: true });
+      // Comments are no longer eagerly fetched for all posts to improve performance
+      set({ posts: transformedPosts, hasLoaded: true });
     } catch (error) {
       console.error("Error fetching posts:", error);
       set({ posts: [] });
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  loadComments: async (postId: string | number) => {
+    try {
+      const comments = await commentsAPI.getByPostId(String(postId));
+      const transformedComments = comments
+        .filter((c: any) => !c.parentCommentId) // Only top-level comments
+        .map(transformComment);
+
+      set((state) => ({
+        posts: state.posts.map((post) =>
+          String(post.id) === String(postId)
+            ? { ...post, comments: transformedComments }
+            : post
+        ),
+      }));
+    } catch (error) {
+      console.error(`Error loading comments for post ${postId}:`, error);
+      // Ideally we'd show a toast or error state here, but for now we log it
     }
   },
 
@@ -101,11 +107,32 @@ export const usePostsStore = create<PostsState>((set, get) => ({
   },
 
   updatePost: (postId: string | number, updater: (post: Post) => Post) => {
-    set((state) => ({
-      posts: state.posts.map((post) =>
-        String(post.id) === String(postId) ? updater(post) : post
-      ),
-    }));
+    set((state) => {
+      const postIndex = state.posts.findIndex(
+        (post) => String(post.id) === String(postId)
+      );
+      if (postIndex === -1) return state;
+      
+      const currentPost = state.posts[postIndex];
+      const updatedPost = updater(currentPost);
+      
+      // Only create new array if post actually changed (shallow comparison of key fields)
+      // This prevents unnecessary re-renders when the update doesn't change anything
+      if (
+        currentPost.votes === updatedPost.votes &&
+        currentPost.userVote === updatedPost.userVote &&
+        currentPost.bookmarked === updatedPost.bookmarked &&
+        currentPost.title === updatedPost.title &&
+        currentPost.content === updatedPost.content &&
+        currentPost.commentCount === updatedPost.commentCount
+      ) {
+        return state;
+      }
+      
+      const newPosts = [...state.posts];
+      newPosts[postIndex] = updatedPost;
+      return { posts: newPosts };
+    });
   },
   addPost: (post: Post) => {
     set((state) => ({

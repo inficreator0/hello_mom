@@ -7,7 +7,9 @@ import {
   Bookmark,
   BookmarkCheck,
   Reply,
+  Loader2,
 } from "lucide-react";
+import { usePostsStore } from "../../store/postsStore";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import {
@@ -20,7 +22,7 @@ import {
 } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Post, Comment } from "../../types";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import ReplyDialog from "./ReplyDialog";
 
@@ -40,7 +42,7 @@ interface PostCardProps {
   showActions?: boolean;
 }
 
-const PostCard = ({
+const PostCard = memo(({
   post,
   onEdit,
   onDelete,
@@ -52,7 +54,14 @@ const PostCard = ({
   showActions = true,
 }: PostCardProps) => {
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
   const { user } = useAuth();
+
+  // We need access to the store to load comments
+  // This is a bit of a hack since we're inside a component that takes props
+  // but it's the cleanest way without prop drilling the loadComments function everywhere
+  // In a real app we might pass this as a prop
+  const loadComments = usePostsStore(state => state.loadComments);
 
   const defaultFormatDate = (date: Date | string) => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
@@ -126,9 +135,8 @@ const PostCard = ({
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onVote(post.id, "up")}>
                 <ChevronUp
-                  className={`h-5 w-5 ${
-                    post.userVote === "up" ? "text-primary fill-primary" : ""
-                  }`}
+                  className={`h-5 w-5 ${post.userVote === "up" ? "text-primary fill-primary" : ""
+                    }`}
                 />
               </Button>
 
@@ -138,9 +146,8 @@ const PostCard = ({
 
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onVote(post.id, "down")}>
                 <ChevronDown
-                  className={`h-5 w-5 ${
-                    post.userVote === "down" ? "text-destructive fill-destructive" : ""
-                  }`}
+                  className={`h-5 w-5 ${post.userVote === "down" ? "text-destructive fill-destructive" : ""
+                    }`}
                 />
               </Button>
             </div>
@@ -150,7 +157,7 @@ const PostCard = ({
           {onComment && (
             <Button variant="ghost" size="sm" onClick={() => onComment(post.id)}>
               <MessageCircle className="mr-2 h-4 w-4" />
-              {post.comments.length}
+              {post.commentCount || 0}
             </Button>
           )}
 
@@ -168,44 +175,54 @@ const PostCard = ({
       </CardContent>
 
       {/* COLLAPSIBLE COMMENTS */}
-      {post.comments.length > 0 && (
+      {((post?.commentCount ?? 0) > 0 || post.comments.length > 0) && (
         <CardFooter className="flex-col items-start pt-0 pb-2">
           <button
             className="text-sm text-primary font-medium flex items-center gap-1 py-2"
-            onClick={() => setCommentsOpen(!commentsOpen)}
+            onClick={async () => {
+              if (!commentsOpen && post.comments.length === 0) {
+                setLoadingComments(true);
+                await loadComments(post.id);
+                setLoadingComments(false);
+              }
+              setCommentsOpen(!commentsOpen);
+            }}
           >
-            {commentsOpen ? "Hide Comments" : "Show Comments"} ({post.comments.length})
+            {commentsOpen ? "Hide Comments" : "Show Comments"} ({post.commentCount || 0})
             {commentsOpen ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
               <ChevronDown className="h-4 w-4" />
             )}
           </button>
-
-    
         </CardFooter>
       )}
-           {/* COLLAPSIBLE PANEL */}
-           <div
-            className={`transition-all overflow-hidden ${
-              commentsOpen ? "max-h-[1000px] opacity-100 p-4" : "max-h-0 opacity-0 "
-            }`}
-          >
-            <div className="w-full border-t pt-4 space-y-3">
-              {post.comments.map((comment) => (
-                <CommentItem
-                  key={comment.id}
-                  comment={comment}
-                  formatDate={format}
-                  postId={post.id}
-                  onReply={onReply}
-                />
-              ))}
+      {/* COLLAPSIBLE PANEL */}
+      <div
+        className={`transition-all overflow-hidden ${commentsOpen ? "max-h-[1000px] opacity-100 p-4" : "max-h-0 opacity-0 "
+          }`}
+      >
+        <div className="w-full border-t pt-4 space-y-3">
+          {loadingComments ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          </div>
+          ) : (
+            post.comments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                formatDate={format}
+                postId={post.id}
+                onReply={onReply}
+              />
+            ))
+          )}
+        </div>
+      </div>
     </Card>
   );
-};
+});
 
 /* ---------------------------------------------
    COMMENT ITEM

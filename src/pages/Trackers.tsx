@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent } from "../components/ui/card";
 import {
   Heart,
@@ -15,6 +16,7 @@ import {
   NotebookPen,
 } from "lucide-react";
 import { usePreferences } from "../context/PreferencesContext";
+import { useNavigate } from "react-router-dom";
 
 interface TrackerCard {
   id: string;
@@ -115,8 +117,20 @@ const trackers: TrackerCard[] = [
 
 export const Trackers = () => {
   const { mode } = usePreferences();
+  const navigate = useNavigate();
+
   const onTrackerOpen = (trackerId: string) => {
-    console.log(`Tracker ${trackerId} opened`);
+    if (trackerId === "cycle") {
+      navigate("/trackers/period");
+    } else if (trackerId === "weight" || trackerId === "growth") {
+      navigate("/trackers/baby-weight");
+    } else {
+      // Find the tracker name for the coming soon page
+      const tracker = trackers.find((t) => t.id === trackerId);
+      navigate("/trackers/coming-soon", {
+        state: { trackerName: tracker?.name || "this tracker" },
+      });
+    }
   };
 
   return (

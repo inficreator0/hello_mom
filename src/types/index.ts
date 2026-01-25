@@ -60,3 +60,33 @@ export interface User {
   userId?: number;
 }
 
+export interface PeriodEntry {
+  id: string;
+  startDate: string; // ISO date string
+  endDate?: string; // ISO date string
+  cycleLength?: number; // days
+  symptoms?: string[];
+  notes?: string;
+}
+
+export interface CycleData {
+  entries: PeriodEntry[];
+  averageCycleLength: number;
+  averagePeriodLength: number;
+}
+
+export interface WeightEntry {
+  id: string;
+  date: string; // ISO date string
+  weight: number; // in kg
+  height?: number; // in cm
+  headCircumference?: number; // in cm
+  notes?: string;
+}
+
+export interface WeightData {
+  entries: WeightEntry[];
+  birthWeight?: number;
+  birthHeight?: number;
+  birthHeadCircumference?: number;
+}
