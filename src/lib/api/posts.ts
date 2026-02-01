@@ -22,7 +22,7 @@ export const postsAPI = {
     return response;
   },
 
-  create: async (data: { title: string; content: string }) => {
+  create: async (data: { title: string; content: string; category?: string; flair?: string }) => {
     const response = await apiRequest<any>("/posts", {
       method: "POST",
       body: JSON.stringify(data),
@@ -30,7 +30,7 @@ export const postsAPI = {
     return response;
   },
 
-  update: async (id: string, data: { title: string; content: string }) => {
+  update: async (id: string, data: { title: string; content: string; category?: string; flair?: string }) => {
     const response = await apiRequest<any>(`/posts/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
@@ -54,6 +54,48 @@ export const postsAPI = {
     await apiRequest(`/posts/${id}/downvote`, {
       method: "POST",
     });
+  },
+};
+
+export const feedAPI = {
+  getFeed: async (
+    sort: "recent" | "upvotes" = "recent",
+    page: number = 0,
+    size: number = 20
+  ) => {
+    const response = await apiRequest<{
+      content: any[];
+      totalElements: number;
+      totalPages: number;
+      size: number;
+      number: number;
+      first: boolean;
+      last: boolean;
+    }>(`/feed?sort=${sort}&page=${page}&size=${size}`);
+    return response;
+  },
+
+  getFeedCursor: async (
+    params: {
+      sort?: "recent" | "upvotes";
+      category?: string;
+      cursor?: string;
+    }
+  ) => {
+    const queryParams = new URLSearchParams();
+    if (params.sort) queryParams.append("sort", params.sort);
+    if (params.category && params.category !== "All") queryParams.append("category", params.category);
+    if (params.cursor) queryParams.append("cursor", params.cursor);
+
+    const response = await apiRequest<{
+      content: any[];
+      nextCursor: string | null;
+      previousCursor: string | null;
+      hasNext: boolean;
+      hasPrevious: boolean;
+      size: number;
+    }>(`/feed/cursor?${queryParams.toString()}`);
+    return response;
   },
 };
 

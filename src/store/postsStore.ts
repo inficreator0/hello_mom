@@ -1,12 +1,16 @@
 import { create } from "zustand";
 import { Post, Comment } from "../types";
-import { postsAPI, commentsAPI } from "../lib/api/posts";
+import { postsAPI, commentsAPI, feedAPI } from "../lib/api/posts";
 
 interface PostsState {
   posts: Post[];
   isLoading: boolean;
   hasLoaded: boolean;
-  refreshPosts: () => Promise<void>;
+  page: number;
+  hasMore: boolean;
+  nextCursor: string | null;
+  refreshPosts: (category?: string) => Promise<void>;
+  loadMorePosts: (category?: string) => Promise<void>;
   loadComments: (postId: string | number) => Promise<void>;
   getPostById: (id: string | number) => Post | undefined;
   updatePost: (postId: string | number, updater: (post: Post) => Post) => void;
@@ -23,12 +27,13 @@ export const transformPost = (backendPost: any): Post => {
     author: backendPost.authorUsername || "Unknown",
     authorId: backendPost.authorId,
     authorUsername: backendPost.authorUsername,
-    category: "All", // Backend doesn't have category, defaulting to "All"
+    category: backendPost.category || "All", // Use category from backend or default to "All"
+    flair: backendPost.flair, // Include flair from backend
     votes: (backendPost.upvotes || 0) - (backendPost.downvotes || 0),
     upvotes: backendPost.upvotes || 0,
     downvotes: backendPost.downvotes || 0,
-    userVote: null, // Will be handled separately if voting is implemented
-    bookmarked: false, // Not in backend yet
+    userVote: backendPost.currentUserVote === "UPVOTE" ? "up" : backendPost.currentUserVote === "DOWNVOTE" ? "down" : null,
+    bookmarked: backendPost.saved || false,
     comments: [], // Will be loaded separately
     commentCount: backendPost.commentCount || 0,
     createdAt: new Date(backendPost.createdAt),
@@ -64,18 +69,58 @@ export const usePostsStore = create<PostsState>((set, get) => ({
   posts: [],
   isLoading: false,
   hasLoaded: false,
+  page: 0,
+  hasMore: true,
+  nextCursor: null,
 
-  refreshPosts: async () => {
+  refreshPosts: async (category?: string) => {
     try {
-      set({ isLoading: true });
-      const response = await postsAPI.getAll(0, 50);
+      set({ isLoading: true, posts: [] });
+
+      const response = await feedAPI.getFeedCursor({
+        sort: "recent",
+        category: category
+      });
+
       const transformedPosts = response.content.map(transformPost);
 
-      // Comments are no longer eagerly fetched for all posts to improve performance
-      set({ posts: transformedPosts, hasLoaded: true });
+      set({
+        posts: transformedPosts,
+        hasLoaded: true,
+        page: 0, // page is less relevant now but keeping for compatibility if needed
+        nextCursor: response.nextCursor,
+        hasMore: response.hasNext
+      });
     } catch (error) {
       console.error("Error fetching posts:", error);
       set({ posts: [] });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  loadMorePosts: async (category?: string) => {
+    const { nextCursor, hasMore, isLoading, posts } = get();
+    if (!hasMore || isLoading || !nextCursor) return;
+
+    try {
+      set({ isLoading: true });
+
+      const response = await feedAPI.getFeedCursor({
+        sort: "recent",
+        category: category,
+        cursor: nextCursor
+      });
+
+      const transformedNewPosts = response.content.map(transformPost);
+
+      set({
+        posts: [...posts, ...transformedNewPosts],
+        nextCursor: response.nextCursor,
+        hasMore: response.hasNext
+      });
+    } catch (error) {
+      console.error("Error loading more posts:", error);
     } finally {
       set({ isLoading: false });
     }
@@ -112,10 +157,10 @@ export const usePostsStore = create<PostsState>((set, get) => ({
         (post) => String(post.id) === String(postId)
       );
       if (postIndex === -1) return state;
-      
+
       const currentPost = state.posts[postIndex];
       const updatedPost = updater(currentPost);
-      
+
       // Only create new array if post actually changed (shallow comparison of key fields)
       // This prevents unnecessary re-renders when the update doesn't change anything
       if (
@@ -128,7 +173,7 @@ export const usePostsStore = create<PostsState>((set, get) => ({
       ) {
         return state;
       }
-      
+
       const newPosts = [...state.posts];
       newPosts[postIndex] = updatedPost;
       return { posts: newPosts };

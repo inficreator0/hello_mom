@@ -104,8 +104,9 @@ const PostCard = memo(({
               by {post.author} • {format(post.createdAt)}
               {post.updatedAt && <span> • Updated</span>}
             </CardDescription>
-            {post.flair && <Badge variant="secondary">{post.flair}</Badge>}
-            <Badge variant="outline">{post.category}</Badge>
+            <div className="flex gap-2">
+              {post.flair && <Badge variant="secondary">{post.flair}</Badge>}
+              <Badge variant="outline">{post.category}</Badge></div>
           </div>
 
           {showActions && isAuthor && (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -16,7 +16,7 @@ import Loader from "./common/Loader";
 const CATEGORIES: CommunityCategory[] = ["All", "Pregnancy", "Postpartum", "Feeding", "Sleep", "Mental Health", "Recovery", "Milestones"];
 
 const Community = () => {
-  const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost } = usePostsStore();
+  const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost, hasMore, loadMorePosts } = usePostsStore();
   const { showToast } = useToast();
 
   const [selectedCategory, setSelectedCategory] = useState<CommunityCategory>("All");
@@ -34,23 +34,52 @@ const Community = () => {
   });
   const [commentText, setCommentText] = useState("");
 
-  // Load posts when the Community page mounts (only if not already loaded)
+  // Load posts when category changes or on mount
   useEffect(() => {
-    if (!hasLoaded && !isLoading) {
-      void refreshPosts();
-    }
-  }, [hasLoaded, isLoading, refreshPosts]);
+    void refreshPosts(selectedCategory);
+    // Reset page/scroll state is handled in store's refreshPosts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, refreshPosts]);
+
+  // Infinite scroll observer
+  const observerTarget = useRef<HTMLDivElement>(null);
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const [target] = entries;
+      if (target.isIntersecting && hasMore && !isLoading) {
+        void loadMorePosts(selectedCategory);
+      }
+    },
+    [hasMore, isLoading, loadMorePosts, selectedCategory]
+  );
+
+  useEffect(() => {
+    const element = observerTarget.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(handleObserver, {
+      threshold: 1.0,
+      rootMargin: "20px",
+    });
+
+    observer.observe(element);
+
+    return () => {
+      if (element) observer.unobserve(element);
+    };
+  }, [handleObserver]);
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
-      const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
+      // Category is now handled by backend, so we only filter by search query locally
+      // Note: effective search would require backend support, this searches only loaded posts
       const matchesSearch =
         searchQuery === "" ||
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.content.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
+      return matchesSearch;
     });
-  }, [posts, selectedCategory, searchQuery]);
+  }, [posts, searchQuery]);
 
   const handleAddPost = async () => {
     if (!formData.title.trim() || !formData.content.trim()) {
@@ -61,13 +90,12 @@ const Community = () => {
       const backendPost = await postsAPI.create({
         title: formData.title,
         content: formData.content,
+        category: formData.category !== "All" ? formData.category : undefined,
+        flair: formData.flair || undefined,
       });
 
       // Add the new post locally without refetching the entire list
-      const newPost = {
-        ...transformPost(backendPost),
-        category: formData.category,
-      };
+      const newPost = transformPost(backendPost);
       addPost(newPost);
 
       setFormData({ title: "", content: "", category: "All", flair: "" });
@@ -88,18 +116,15 @@ const Community = () => {
       const backendPost = await postsAPI.update(String(editingPost.id), {
         title: formData.title,
         content: formData.content,
+        category: formData.category !== "All" ? formData.category : undefined,
+        flair: formData.flair || undefined,
       });
 
       // Update the post locally without refetching the entire list
       updatePost(editingPost.id, (post) => {
         return {
           ...post,
-          title: formData.title,
-          content: formData.content,
-          category: formData.category,
-          updatedAt: backendPost.updatedAt
-            ? new Date(backendPost.updatedAt)
-            : new Date(),
+          ...transformPost(backendPost),
         };
       });
 
@@ -302,7 +327,7 @@ const Community = () => {
         />
 
         <div className="space-y-4">
-          {isLoading ? (
+          {isLoading && posts.length === 0 ? (
             <Card>
               <CardContent className="pt-4">
                 <Loader label="Fetching community posts..." />
@@ -330,6 +355,12 @@ const Community = () => {
                 formatDate={formatDate}
               />
             ))
+          )}
+
+          {sortedPosts.length > 0 && hasMore && (
+            <div ref={observerTarget} className="flex justify-center pt-4 pb-8 h-10 w-full">
+              {isLoading && <Loader label="Loading more posts..." />}
+            </div>
           )}
         </div>
       </div>
