@@ -101,13 +101,13 @@ const PostDetail = () => {
 
   const formatDate = (date: Date | string) => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    return new Intl.DateTimeFormat("en-US", {
+    return dateObj.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(dateObj);
+    });
   };
 
   const handleVote = async (voteType: "up" | "down") => {
@@ -275,7 +275,7 @@ const PostDetail = () => {
                   aria-label="Upvote"
                 >
                   <ArrowBigUp
-                    className={`h-7 w-7 ${post.userVote === "up" ? "text-primary fill-primary" : "text-muted-foreground hover:text-primary"
+                    className={`h-5 w-5 ${post.userVote === "up" ? "text-primary fill-primary" : "text-muted-foreground hover:text-primary"
                       }`}
                   />
                 </Button>
@@ -290,7 +290,7 @@ const PostDetail = () => {
                   aria-label="Downvote"
                 >
                   <ArrowBigDown
-                    className={`h-7 w-7 ${post.userVote === "down" ? "text-blue-600 fill-blue-600" : "text-muted-foreground hover:text-blue-600"
+                    className={`h-5 w-5 ${post.userVote === "down" ? "text-blue-600 fill-blue-600" : "text-muted-foreground hover:text-blue-600"
                       }`}
                   />
                 </Button>

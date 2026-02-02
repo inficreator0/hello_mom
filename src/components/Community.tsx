@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { Card, CardContent } from "./ui/card";
 import { Post, PostFormData, Comment, CommunityCategory } from "../types";
 import { postsAPI, commentsAPI } from "../lib/api/posts";
@@ -14,6 +15,7 @@ import { usePostsStore, transformPost } from "../store/postsStore";
 import { useToast } from "../context/ToastContext";
 import { PostCardSkeleton } from "./ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/bottom-sheet";
+import { CommunityEmptyState } from "./common/CommunityEmptyState";
 
 const CATEGORIES: CommunityCategory[] = ["All", "Pregnancy", "Postpartum", "Feeding", "Sleep", "Mental Health", "Recovery", "Milestones"];
 
@@ -25,7 +27,6 @@ const Community = () => {
   const [selectedCategory, setSelectedCategory] = useState<CommunityCategory>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | number | null>(null);
@@ -86,32 +87,6 @@ const Community = () => {
       return matchesSearch;
     });
   }, [posts, searchQuery]);
-
-  const handleAddPost = async () => {
-    if (!formData.title.trim() || !formData.content.trim()) {
-      return;
-    }
-
-    try {
-      const backendPost = await postsAPI.create({
-        title: formData.title,
-        content: formData.content,
-        category: formData.category !== "All" ? formData.category : undefined,
-        flair: formData.flair || undefined,
-      });
-
-      // Add the new post locally without refetching the entire list
-      const newPost = transformPost(backendPost);
-      addPost(newPost);
-
-      setFormData({ title: "", content: "", category: "All", flair: "" });
-      setIsAddDialogOpen(false);
-      showToast("Post created successfully", "success");
-    } catch (error: any) {
-      console.error("Error creating post:", error);
-      showToast(error.message || "Failed to create post. Please try again.", "error");
-    }
-  };
 
   const handleEditPost = async () => {
     if (!editingPost || !formData.title.trim() || !formData.content.trim()) {
@@ -264,13 +239,13 @@ const Community = () => {
 
   const formatDate = (date: Date | string) => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    return new Intl.DateTimeFormat("en-IN", {
+    return dateObj.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(dateObj);
+    });
   };
 
   // Scroll direction detection for sticky header
@@ -330,9 +305,9 @@ const Community = () => {
               <h1 className="text-2xl font-bold text-foreground mb-1">Community</h1>
               <p className="text-xs text-muted-foreground">Share, connect, and support each other</p>
             </div>
-            <Button onClick={() => navigate("/create-post")}>
+            <Button onClick={() => navigate("/create-post")} className="rounded-full px-4 shadow-md hover:shadow-lg transition-all">
               <Plus className="mr-2 h-4 w-4" />
-              New Post
+              Create Post
             </Button>
           </div>
         </div>
@@ -346,6 +321,23 @@ const Community = () => {
             className="mb-0"
             onFilterClick={() => setIsFilterOpen(true)}
           />
+          {selectedCategory && selectedCategory !== "All" && (
+            <div className="flex animate-in fade-in slide-in-from-top-1 duration-200 mt-2">
+              <Badge
+                variant="secondary"
+                className="pl-3 pr-1 py-1 h-7 flex items-center gap-1 cursor-pointer hover:bg-secondary/80 transition-colors border-primary/20 bg-primary/10 text-primary"
+                onClick={() => {
+                  setSelectedCategory("All");
+                  refreshPosts("All");
+                }}
+              >
+                {selectedCategory}
+                <div className="rounded-full p-0.5 hover:bg-black/10 transition-colors">
+                  <X className="h-3 w-3" />
+                </div>
+              </Badge>
+            </div>
+          )}
         </div>
       </div>
 
@@ -405,18 +397,6 @@ const Community = () => {
       <div className="container mx-auto py-4 px-4 max-w-6xl animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
 
         <PostFormDialog
-          open={isAddDialogOpen}
-          onOpenChange={setIsAddDialogOpen}
-          title="Create New Post"
-          description="Share your thoughts, ask questions, or offer support to the community."
-          formData={formData}
-          onFormDataChange={setFormData}
-          onSubmit={handleAddPost}
-          categories={CATEGORIES}
-          submitLabel="Post"
-        />
-
-        <PostFormDialog
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           title="Edit Post"
@@ -445,13 +425,7 @@ const Community = () => {
               <PostCardSkeleton />
             </>
           ) : sortedPosts.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-center text-muted-foreground">
-                  {searchQuery ? "No posts found matching your search." : "No posts yet. Be the first to share!"}
-                </p>
-              </CardContent>
-            </Card>
+            <CommunityEmptyState onAction={() => navigate("/create-post")} />
           ) : (
             sortedPosts.map((post) => (
               <PostCard

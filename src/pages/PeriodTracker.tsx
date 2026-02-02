@@ -374,7 +374,7 @@ export const PeriodTracker = () => {
             <CardContent className="px-2 sm:px-4 pb-2 sm:pb-4">
               <div className="text-base sm:text-xl md:text-2xl font-bold">
                 {nextPeriod
-                  ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(nextPeriod)
+                  ? nextPeriod.toLocaleDateString("en-US", { month: "short", day: "numeric" })
                   : "—"}
               </div>
             </CardContent>
@@ -481,18 +481,18 @@ export const PeriodTracker = () => {
                     >
                       <div className="flex-1">
                         <div className="font-medium">
-                          {new Intl.DateTimeFormat("en-US", {
+                          {start.toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
-                          }).format(start)}
+                          })}
                           {entry.endDate && entry.endDate !== entry.startDate && (
                             <span>
                               {" - "}
-                              {new Intl.DateTimeFormat("en-US", {
+                              {end.toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
-                              }).format(end)}
+                              })}
                             </span>
                           )}
                         </div>

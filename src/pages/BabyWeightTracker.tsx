@@ -121,13 +121,13 @@ export const BabyWeightTracker = () => {
       const updatedEntries = weightData.entries.map((e) =>
         e.id === editingEntry.id
           ? {
-              ...e,
-              date: formData.date,
-              weight,
-              height,
-              headCircumference,
-              notes: formData.notes,
-            }
+            ...e,
+            date: formData.date,
+            weight,
+            height,
+            headCircumference,
+            notes: formData.notes,
+          }
           : e
       );
       saveData({ ...weightData, entries: updatedEntries });
@@ -265,11 +265,11 @@ export const BabyWeightTracker = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="font-medium">
-                            {new Intl.DateTimeFormat("en-US", {
+                            {date.toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
                               year: "numeric",
-                            }).format(date)}
+                            })}
                           </div>
                           {ageInDays !== null && (
                             <span className="text-xs text-muted-foreground">
