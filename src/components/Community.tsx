@@ -12,7 +12,7 @@ import CommentDialog from "./common/CommentDialog";
 import CategoryTabs from "./common/CategoryTabs";
 import { usePostsStore, transformPost } from "../store/postsStore";
 import { useToast } from "../context/ToastContext";
-import Loader from "./common/Loader";
+import { PostCardSkeleton } from "./ui/skeleton";
 
 const CATEGORIES: CommunityCategory[] = ["All", "Pregnancy", "Postpartum", "Feeding", "Sleep", "Mental Health", "Recovery", "Milestones"];
 
@@ -336,11 +336,12 @@ const Community = () => {
 
         <div className="space-y-4">
           {isLoading && posts.length === 0 ? (
-            <Card>
-              <CardContent className="pt-4">
-                <Loader label="Fetching community posts..." />
-              </CardContent>
-            </Card>
+            <>
+              <PostCardSkeleton />
+              <PostCardSkeleton />
+              <PostCardSkeleton />
+              <PostCardSkeleton />
+            </>
           ) : sortedPosts.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
@@ -366,8 +367,8 @@ const Community = () => {
           )}
 
           {sortedPosts.length > 0 && hasMore && (
-            <div ref={observerTarget} className="flex justify-center pt-4 pb-8 h-10 w-full">
-              {isLoading && <Loader label="Loading more posts..." />}
+            <div ref={observerTarget} className="pt-4 pb-8">
+              {isLoading && <PostCardSkeleton />}
             </div>
           )}
         </div>

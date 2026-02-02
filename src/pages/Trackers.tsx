@@ -41,20 +41,20 @@ const trackers: TrackerCard[] = [
     description: "Track week-by-week pregnancy changes",
     lastEntry: "Week 22 • Baby size: Papaya",
   },
-  {
-    id: "kick-counter",
-    name: "Kick Counter",
-    icon: Activity,
-    description: "Monitor baby’s daily movement patterns",
-    lastEntry: "Last session: 32 kicks",
-  },
-  {
-    id: "contraction",
-    name: "Contraction Timer",
-    icon: Timer,
-    description: "Measure interval & duration during labor",
-    lastEntry: "No recent contractions",
-  },
+  // {
+  //   id: "kick-counter",
+  //   name: "Kick Counter",
+  //   icon: Activity,
+  //   description: "Monitor baby’s daily movement patterns",
+  //   lastEntry: "Last session: 32 kicks",
+  // },
+  // {
+  //   id: "contraction",
+  //   name: "Contraction Timer",
+  //   icon: Timer,
+  //   description: "Measure interval & duration during labor",
+  //   lastEntry: "No recent contractions",
+  // },
   {
     id: "mood",
     name: "Mood & Mental Health",
@@ -83,13 +83,13 @@ const trackers: TrackerCard[] = [
     description: "Track pregnancy & postpartum weight",
     lastEntry: "62.4 kg",
   },
-  {
-    id: "symptoms",
-    name: "Symptoms",
-    icon: NotebookPen,
-    description: "Log nausea, fatigue, cramps & more",
-    lastEntry: "2 symptoms today",
-  },
+  // {
+  //   id: "symptoms",
+  //   name: "Symptoms",
+  //   icon: NotebookPen,
+  //   description: "Log nausea, fatigue, cramps & more",
+  //   lastEntry: "2 symptoms today",
+  // },
 
   // Baby trackers
   {

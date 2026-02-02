@@ -67,6 +67,41 @@ export const postsAPI = {
       method: "DELETE",
     });
   },
+
+  getMyPosts: async (page: number = 0, size: number = 20) => {
+    const response = await apiRequest<{
+      content: any[];
+      totalElements: number;
+      totalPages: number;
+      size: number;
+      number: number;
+    }>(`/posts/my-posts?page=${page}&size=${size}`);
+    return response;
+  },
+
+  getSavedPosts: async (page: number = 0, size: number = 20) => {
+    const response = await apiRequest<{
+      content: any[];
+      totalElements: number;
+      totalPages: number;
+      size: number;
+      number: number;
+    }>(`/users/me/saved-posts?page=${page}&size=${size}`);
+    return response;
+  },
+
+  getUserStats: async (username: string) => {
+    const response = await apiRequest<{
+      userId: number;
+      username: string;
+      postsCount: number;
+      commentsCount: number;
+      totalUpvotesReceived: number;
+      totalDownvotesReceived: number;
+      articlesCount: number;
+    }>(`/users/${username}/stats`);
+    return response;
+  },
 };
 
 export const feedAPI = {
