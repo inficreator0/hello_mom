@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { Comment } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import EmptyState from "../components/common/EmptyState";
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,30 +24,47 @@ const PostDetail = () => {
 
   // Ensure we have the latest post + comments when navigating directly to this page
   useEffect(() => {
+    let isMounted = true;
+
     if (id && !post) {
       void refreshPosts();
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [id, post, refreshPosts]);
 
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [loadedPostId, setLoadedPostId] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Only load comments if we have a post, and we haven't loaded them for this ID yet
     if (id && post && loadedPostId !== id) {
       const fetchComments = async () => {
+        if (!isMounted) return;
         setIsLoadingComments(true);
         try {
           await loadComments(id);
-          setLoadedPostId(id);
+          if (isMounted) {
+            setLoadedPostId(id);
+          }
         } catch (error) {
           console.error("Failed to load comments:", error);
         } finally {
-          setIsLoadingComments(false);
+          if (isMounted) {
+            setIsLoadingComments(false);
+          }
         }
       };
       fetchComments();
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [id, post, loadedPostId, loadComments]);
 
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
@@ -303,7 +321,7 @@ const PostDetail = () => {
 
         <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">
+            <h2 className="text font-semibold">
               Comments ({post.comments.length})
             </h2>
           </div>
@@ -313,13 +331,10 @@ const PostDetail = () => {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : post.comments.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-center text-muted-foreground">
-                  No comments yet. Be the first to comment!
-                </p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="No comments yet"
+              description="Be the first to share your thoughts!"
+            />
           ) : (
             post.comments.map((comment) => (
               <CommentItem

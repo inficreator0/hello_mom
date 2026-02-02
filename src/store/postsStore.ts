@@ -10,8 +10,9 @@ interface PostsState {
   hasMore: boolean;
   nextCursor: string | null;
   currentCategory: string | null;
-  refreshPosts: (category?: string) => Promise<void>;
-  loadMorePosts: (category?: string) => Promise<void>;
+  currentSort: "recent" | "upvotes";
+  refreshPosts: (category?: string, sort?: "recent" | "upvotes") => Promise<void>;
+  loadMorePosts: () => Promise<void>;
   loadComments: (postId: string | number) => Promise<void>;
   getPostById: (id: string | number) => Post | undefined;
   updatePost: (postId: string | number, updater: (post: Post) => Post) => void;
@@ -74,25 +75,24 @@ export const usePostsStore = create<PostsState>((set, get) => ({
   page: 0,
   hasMore: true,
   nextCursor: null,
-  currentCategory: null,
+  currentCategory: "All",
+  currentSort: "recent", // Default sort
 
-  refreshPosts: async (category?: string) => {
-    // If we are already loading, or if the category hasn't changed (optional optimization, but strict mode triggers double mount)
-    // Actually, for "refresh", we usually WANT to reload.
-    // But if the user says "cursor api is getting called 2 times", it might be the initial load effect + something else?
-    // Let's just debounce or Use a generic "isFetching" check?
-    // Or better: Community.tsx calls refreshPosts(category) on effect change.
+  refreshPosts: async (category?: string, sort?: "recent" | "upvotes") => {
+    // Determine effective category and sort
+    const effectiveCategory = category !== undefined ? category : get().currentCategory;
+    const effectiveSort = sort !== undefined ? sort : get().currentSort;
 
-    // Let's rely on the store to hold the single source of truth for category to avoid race conditions.
+    // Check if we are already loading to prevent double-mounts
     const { isLoading } = get();
-    if (isLoading) return; // Simple debounce for now against double-mounts
+    if (isLoading) return;
 
     try {
-      set({ isLoading: true, posts: [], currentCategory: category || "All" });
+      set({ isLoading: true, posts: [], currentCategory: effectiveCategory || "All", currentSort: effectiveSort });
 
       const response = await feedAPI.getFeedCursor({
-        sort: "recent",
-        category: category
+        sort: effectiveSort,
+        category: effectiveCategory || undefined
       });
 
       const transformedPosts = response.content.map(transformPost);
@@ -100,7 +100,7 @@ export const usePostsStore = create<PostsState>((set, get) => ({
       set({
         posts: transformedPosts,
         hasLoaded: true,
-        page: 0, // page is less relevant now but keeping for compatibility if needed
+        page: 0,
         nextCursor: response.nextCursor,
         hasMore: response.hasNext
       });
@@ -112,16 +112,16 @@ export const usePostsStore = create<PostsState>((set, get) => ({
     }
   },
 
-  loadMorePosts: async (category?: string) => {
-    const { nextCursor, hasMore, isLoading, posts } = get();
+  loadMorePosts: async () => {
+    const { nextCursor, hasMore, isLoading, posts, currentCategory, currentSort } = get();
     if (!hasMore || isLoading || !nextCursor) return;
 
     try {
       set({ isLoading: true });
 
       const response = await feedAPI.getFeedCursor({
-        sort: "recent",
-        category: category,
+        sort: currentSort, // Use current sort
+        category: currentCategory || undefined,
         cursor: nextCursor
       });
 

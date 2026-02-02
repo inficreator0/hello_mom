@@ -25,7 +25,7 @@ const AuthenticatedApp = () => {
   return (
     <div className="min-h-screen bg-background relative isolate">
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-primary/30 to-background" />
-      <div className="pb-16">
+      <div className="pb-14">
         <Routes>
           <Route
             path="/"

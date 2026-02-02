@@ -13,16 +13,18 @@ import CategoryTabs from "./common/CategoryTabs";
 import { usePostsStore, transformPost } from "../store/postsStore";
 import { useToast } from "../context/ToastContext";
 import { PostCardSkeleton } from "./ui/skeleton";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/bottom-sheet";
 
 const CATEGORIES: CommunityCategory[] = ["All", "Pregnancy", "Postpartum", "Feeding", "Sleep", "Mental Health", "Recovery", "Milestones"];
 
 const Community = () => {
-  const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost, hasMore, loadMorePosts, toggleBookmark } = usePostsStore();
+  const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost, hasMore, loadMorePosts, toggleBookmark, currentSort } = usePostsStore();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [selectedCategory, setSelectedCategory] = useState<CommunityCategory>("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
@@ -51,10 +53,10 @@ const Community = () => {
     (entries: IntersectionObserverEntry[]) => {
       const [target] = entries;
       if (target.isIntersecting && hasMore && !isLoading) {
-        void loadMorePosts(selectedCategory);
+        void loadMorePosts();
       }
     },
-    [hasMore, isLoading, loadMorePosts, selectedCategory]
+    [hasMore, isLoading, loadMorePosts]
   );
 
   useEffect(() => {
@@ -271,36 +273,136 @@ const Community = () => {
     }).format(dateObj);
   };
 
+  // Scroll direction detection for sticky header
+  const [showHeader, setShowHeader] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      setIsScrolled(currentScrollY > 10);
+
+      // Add threshold to prevent jerky behavior (hysteresis)
+      const threshold = 15;
+      const diff = currentScrollY - lastScrollY.current;
+
+      if (currentScrollY < 10) {
+        setShowHeader(true);
+        lastScrollY.current = currentScrollY;
+      } else if (Math.abs(diff) > threshold) {
+        if (diff > 0) {
+          // Scrolling down - hide header (if user wants "vanish" on scroll up? No, standard behavior restored)
+          // Standard: Scroll Down -> Hide. Scroll Up -> Show.
+          setShowHeader(false);
+        } else {
+          // Scrolling up - show header
+          setShowHeader(true);
+        }
+        lastScrollY.current = currentScrollY;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Posts are already sorted by backend (createdAt DESC) and store preserves order
   const sortedPosts = filteredPosts;
 
   return (
     <div className="pb-4">
-      <div className="container mx-auto py-8 px-4 max-w-6xl animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-        <div className="flex flex-row md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Community</h1>
-            <p className="text-xs text-muted-foreground">Share, connect, and support each other</p>
+      {/* Sticky Header Container */}
+      <div
+        className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled
+            ? "bg-primary/20 backdrop-blur-md shadow-sm border-b border-primary/20 supports-[backdrop-filter]:bg-primary/10"
+            : ""
+          }`}
+      >
+        {/* Header - hides on scroll direction */}
+        <div
+          className={`container mx-auto px-4 max-w-6xl transition-all duration-300 overflow-hidden ${showHeader ? "max-h-24 opacity-100 pt-8 pb-2" : "max-h-0 opacity-0 pt-0 pb-0"
+            }`}
+        >
+          <div className="flex flex-row md:flex-row justify-between items-start md:items-center mb-2 gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground mb-1">Community</h1>
+              <p className="text-xs text-muted-foreground">Share, connect, and support each other</p>
+            </div>
+            <Button onClick={() => navigate("/create-post")}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Post
+            </Button>
           </div>
-          <Button onClick={() => navigate("/create-post")}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Post
-          </Button>
         </div>
 
-        <div className="mb-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
+        {/* Search & Categories - always sticky */}
+        <div className="container mx-auto px-4 max-w-6xl py-3">
           <SearchBar
             placeholder="Search posts..."
             value={searchQuery}
             onChange={setSearchQuery}
-            className="mb-4"
-          />
-          <CategoryTabs
-            categories={CATEGORIES}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
+            className="mb-0"
+            onFilterClick={() => setIsFilterOpen(true)}
           />
         </div>
+      </div>
+
+      <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+        <SheetContent>
+          <SheetHeader className="mb-4">
+            <SheetTitle>Filter & Sort</SheetTitle>
+          </SheetHeader>
+          <div className="py-2 space-y-6">
+            <div>
+              <h3 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wider">Category</h3>
+              <CategoryTabs
+                categories={CATEGORIES}
+                selectedCategory={selectedCategory}
+                onCategoryChange={(category) => {
+                  setSelectedCategory(category);
+                  setIsFilterOpen(false);
+                }}
+              />
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium mb-3 text-muted-foreground uppercase tracking-wider">Sort By</h3>
+              <div className="flex gap-2">
+                <Button
+                  variant={currentSort === "recent" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    if (currentSort !== "recent") {
+                      refreshPosts(selectedCategory, "recent");
+                      setIsFilterOpen(false);
+                    }
+                  }}
+                  className="rounded-full"
+                >
+                  Latest
+                </Button>
+                <Button
+                  variant={currentSort === "upvotes" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    if (currentSort !== "upvotes") {
+                      refreshPosts(selectedCategory, "upvotes");
+                      setIsFilterOpen(false);
+                    }
+                  }}
+                  className="rounded-full"
+                >
+                  Most Upvoted
+                </Button>
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <div className="container mx-auto py-4 px-4 max-w-6xl animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
 
         <PostFormDialog
           open={isAddDialogOpen}
