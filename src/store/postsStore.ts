@@ -9,6 +9,7 @@ interface PostsState {
   page: number;
   hasMore: boolean;
   nextCursor: string | null;
+  currentCategory: string | null;
   refreshPosts: (category?: string) => Promise<void>;
   loadMorePosts: (category?: string) => Promise<void>;
   loadComments: (postId: string | number) => Promise<void>;
@@ -73,10 +74,21 @@ export const usePostsStore = create<PostsState>((set, get) => ({
   page: 0,
   hasMore: true,
   nextCursor: null,
+  currentCategory: null,
 
   refreshPosts: async (category?: string) => {
+    // If we are already loading, or if the category hasn't changed (optional optimization, but strict mode triggers double mount)
+    // Actually, for "refresh", we usually WANT to reload.
+    // But if the user says "cursor api is getting called 2 times", it might be the initial load effect + something else?
+    // Let's just debounce or Use a generic "isFetching" check?
+    // Or better: Community.tsx calls refreshPosts(category) on effect change.
+
+    // Let's rely on the store to hold the single source of truth for category to avoid race conditions.
+    const { isLoading } = get();
+    if (isLoading) return; // Simple debounce for now against double-mounts
+
     try {
-      set({ isLoading: true, posts: [] });
+      set({ isLoading: true, posts: [], currentCategory: category || "All" });
 
       const response = await feedAPI.getFeedCursor({
         sort: "recent",

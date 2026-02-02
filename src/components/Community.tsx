@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -18,6 +19,7 @@ const CATEGORIES: CommunityCategory[] = ["All", "Pregnancy", "Postpartum", "Feed
 const Community = () => {
   const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost, hasMore, loadMorePosts, toggleBookmark } = usePostsStore();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const [selectedCategory, setSelectedCategory] = useState<CommunityCategory>("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,10 +37,12 @@ const Community = () => {
   const [commentText, setCommentText] = useState("");
 
   // Load posts when category changes or on mount
+  // Load posts when category changes or on mount
   useEffect(() => {
+    // We can rely on the store to handle deduplication or just call it.
+    // To be safe against double-mounts in StrictMode, we could use a ref, 
+    // but the store's isLoading check should handle it now.
     void refreshPosts(selectedCategory);
-    // Reset page/scroll state is handled in store's refreshPosts
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, refreshPosts]);
 
   // Infinite scroll observer
@@ -278,7 +282,7 @@ const Community = () => {
             <h1 className="text-2xl font-bold text-foreground mb-2">Community</h1>
             <p className="text-xs text-muted-foreground">Share, connect, and support each other</p>
           </div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Button onClick={() => navigate("/create-post")}>
             <Plus className="mr-2 h-4 w-4" />
             New Post
           </Button>

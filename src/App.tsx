@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Community from './components/Community';
-import {Trackers} from './pages/Trackers';
+import { Trackers } from './pages/Trackers';
 import PostDetail from './pages/PostDetail';
+import CreatePost from './pages/CreatePost';
 import Login from './pages/Login';
 import BottomNav from './components/BottomNav';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -40,6 +41,14 @@ const AuthenticatedApp = () => {
             </ProtectedRoute>
           }
         /> */}
+        <Route
+          path="/create-post"
+          element={
+            <ProtectedRoute>
+              <CreatePost />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/post/:id"
           element={
