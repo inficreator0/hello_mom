@@ -1,14 +1,16 @@
 import {
   Edit2,
   Trash2,
-  ChevronUp,
-  ChevronDown,
-  MessageCircle,
+  ArrowBigUp,
+  ArrowBigDown,
+  MessageSquare,
   Bookmark,
   BookmarkCheck,
   Reply,
   Loader2,
+  MoreVertical,
 } from "lucide-react";
+import ConfirmationDialog from "./ConfirmationDialog";
 import { usePostsStore } from "../../store/postsStore";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
@@ -55,6 +57,8 @@ const PostCard = memo(({
 }: PostCardProps) => {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { user } = useAuth();
 
   // We need access to the store to load comments
@@ -91,6 +95,16 @@ const PostCard = memo(({
     navigate(`/post/${post.id}`);
   };
 
+  const handleToggleComments = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!commentsOpen && post.comments.length === 0 && (post.commentCount || 0) > 0) {
+      setLoadingComments(true);
+      await loadComments(post.id);
+      setLoadingComments(false);
+    }
+    setCommentsOpen((prev) => !prev);
+  };
+
   return (
     <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={handleCardClick}>
       <CardHeader>
@@ -109,17 +123,58 @@ const PostCard = memo(({
               <Badge variant="outline">{post.category}</Badge></div>
           </div>
 
-          {showActions && isAuthor && (
-            <div className="flex">
-              {onEdit && (
-                <Button variant="ghost" size="icon" onClick={() => onEdit(post)}>
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-              )}
-              {onDelete && (
-                <Button variant="ghost" size="icon" onClick={() => onDelete(post.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+          {showActions && isAuthor && (onEdit || onDelete) && (
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMenuOpen(!isMenuOpen);
+                }}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+
+              {isMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMenuOpen(false);
+                    }}
+                  />
+                  <div className="absolute right-0 top-8 z-20 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 bg-[white]">
+                    {onEdit && (
+                      <button
+                        className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsMenuOpen(false);
+                          onEdit(post);
+                        }}
+                      >
+                        <Edit2 className="mr-2 h-4 w-4" />
+                        Edit
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-destructive hover:text-destructive-foreground text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsMenuOpen(false);
+                          setIsDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -134,33 +189,31 @@ const PostCard = memo(({
           {/* Voting */}
           {onVote && (
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onVote(post.id, "up")}>
-                <ChevronUp
-                  className={`h-5 w-5 ${post.userVote === "up" ? "text-primary fill-primary" : ""
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-transparent" onClick={() => onVote(post.id, "up")}>
+                <ArrowBigUp
+                  className={`h-6 w-6 ${post.userVote === "up" ? "text-primary fill-primary" : "text-muted-foreground hover:text-primary"
                     }`}
                 />
               </Button>
 
-              <span className="font-semibold min-w-[2rem] text-center">
+              <span className={`font-bold min-w-[2rem] text-center ${post.userVote === "up" ? "text-primary" : post.userVote === "down" ? "text-blue-600" : ""}`}>
                 {post.votes}
               </span>
 
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onVote(post.id, "down")}>
-                <ChevronDown
-                  className={`h-5 w-5 ${post.userVote === "down" ? "text-destructive fill-destructive" : ""
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-transparent" onClick={() => onVote(post.id, "down")}>
+                <ArrowBigDown
+                  className={`h-6 w-6 ${post.userVote === "down" ? "text-blue-600 fill-blue-600" : "text-muted-foreground hover:text-blue-600"
                     }`}
                 />
               </Button>
             </div>
           )}
 
-          {/* Comment Button */}
-          {onComment && (
-            <Button variant="ghost" size="sm" onClick={() => onComment(post.id)}>
-              <MessageCircle className="mr-2 h-4 w-4" />
-              {post.commentCount || 0}
-            </Button>
-          )}
+          {/* Comment Button (Toggles Section) */}
+          <Button variant="ghost" size="sm" onClick={handleToggleComments}>
+            <MessageSquare className="mr-2 h-4 w-4" />
+            {post.commentCount || 0}
+          </Button>
 
           {/* Bookmark */}
           {onBookmark && (
@@ -175,32 +228,26 @@ const PostCard = memo(({
         </div>
       </CardContent>
 
-      {/* COLLAPSIBLE COMMENTS */}
-      {((post?.commentCount ?? 0) > 0 || post.comments.length > 0) && (
-        <CardFooter className="flex-col items-start pt-0 pb-2">
-          <button
-            className="text-sm text-primary font-medium flex items-center gap-1 py-2"
-            onClick={async () => {
-              if (!commentsOpen && post.comments.length === 0) {
-                setLoadingComments(true);
-                await loadComments(post.id);
-                setLoadingComments(false);
-              }
-              setCommentsOpen(!commentsOpen);
+      {/* Add Comment Button */}
+      {onComment && (
+        <CardFooter className="pt-0 pb-2">
+          <Button
+            variant="ghost"
+            className="text-sm text-muted-foreground hover:text-primary w-full justify-start pl-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onComment(post.id);
             }}
           >
-            {commentsOpen ? "Hide Comments" : "Show Comments"} ({post.commentCount || 0})
-            {commentsOpen ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </button>
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Add a comment...
+          </Button>
         </CardFooter>
       )}
+
       {/* COLLAPSIBLE PANEL */}
       <div
-        className={`transition-all overflow-hidden ${commentsOpen ? "max-h-[1000px] opacity-100 p-4" : "max-h-0 opacity-0 "
+        className={`transition-all overflow-hidden ${commentsOpen ? "max-h-[1000px] opacity-100 px-4 pb-4" : "max-h-0 opacity-0 px-4"
           }`}
       >
         <div className="w-full border-t pt-4 space-y-3">
@@ -221,6 +268,20 @@ const PostCard = memo(({
           )}
         </div>
       </div>
+      <ConfirmationDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Delete Post"
+        description="Are you sure you want to delete this post? This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (onDelete) {
+            onDelete(post.id);
+            setIsDeleteDialogOpen(false);
+          }
+        }}
+        isLoading={false}
+      />
     </Card>
   );
 });

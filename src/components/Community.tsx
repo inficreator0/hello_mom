@@ -275,7 +275,7 @@ const Community = () => {
   const sortedPosts = filteredPosts;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-20">
+    <div className="pb-4">
       <div className="container mx-auto py-8 px-4 max-w-6xl animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
         <div className="flex flex-row md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>

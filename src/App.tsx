@@ -23,17 +23,19 @@ import { UpdatePrompt } from './components/UpdatePrompt';
 // Component to handle authenticated routes
 const AuthenticatedApp = () => {
   return (
-    <div className="min-h-screen bg-background pb-16">
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Community />
-            </ProtectedRoute>
-          }
-        />
-        {/* <Route
+    <div className="min-h-screen bg-background relative isolate">
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-primary/30 to-background" />
+      <div className="pb-16">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Community />
+              </ProtectedRoute>
+            }
+          />
+          {/* <Route
           path="/community"
           element={
             <ProtectedRoute>
@@ -41,93 +43,94 @@ const AuthenticatedApp = () => {
             </ProtectedRoute>
           }
         /> */}
-        <Route
-          path="/create-post"
-          element={
-            <ProtectedRoute>
-              <CreatePost />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/post/:id"
-          element={
-            <ProtectedRoute>
-              <PostDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trackers"
-          element={
-            <ProtectedRoute>
-              <Trackers />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trackers/period"
-          element={
-            <ProtectedRoute>
-              <PeriodTracker />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trackers/baby-weight"
-          element={
-            <ProtectedRoute>
-              <BabyWeightTracker />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trackers/coming-soon"
-          element={
-            <ProtectedRoute>
-              <ComingSoon />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/consult"
-          element={
-            <ProtectedRoute>
-              <Consultations />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/articles"
-          element={
-            <ProtectedRoute>
-              <Articles />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/onboarding"
-          element={
-            <ProtectedRoute>
-              <Onboarding />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <ProtectedRoute>
-        <BottomNav />
-      </ProtectedRoute>
-      <UpdatePrompt />
+          <Route
+            path="/create-post"
+            element={
+              <ProtectedRoute>
+                <CreatePost />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/post/:id"
+            element={
+              <ProtectedRoute>
+                <PostDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trackers"
+            element={
+              <ProtectedRoute>
+                <Trackers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trackers/period"
+            element={
+              <ProtectedRoute>
+                <PeriodTracker />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trackers/baby-weight"
+            element={
+              <ProtectedRoute>
+                <BabyWeightTracker />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trackers/coming-soon"
+            element={
+              <ProtectedRoute>
+                <ComingSoon />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/consult"
+            element={
+              <ProtectedRoute>
+                <Consultations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/articles"
+            element={
+              <ProtectedRoute>
+                <Articles />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <ProtectedRoute>
+          <BottomNav />
+        </ProtectedRoute>
+        <UpdatePrompt />
+      </div>
     </div>
   );
 };

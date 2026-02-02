@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Trash2, ChevronUp, ChevronDown, MessageCircle, Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, Trash2, ArrowBigUp, ArrowBigDown, MessageSquare, Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -7,6 +7,7 @@ import { usePostsStore } from "../store/postsStore";
 import { postsAPI, commentsAPI } from "../lib/api/posts";
 import CommentDialog from "../components/common/CommentDialog";
 import ReplyDialog from "../components/common/ReplyDialog";
+import ConfirmationDialog from "../components/common/ConfirmationDialog";
 import { useState, useEffect } from "react";
 import { Comment } from "../types";
 import { useAuth } from "../context/AuthContext";
@@ -50,6 +51,7 @@ const PostDetail = () => {
 
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [replyText, setReplyText] = useState("");
@@ -181,24 +183,28 @@ const PostDetail = () => {
     setIsReplyDialogOpen(true);
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
     if (!id) return;
 
-    if (window.confirm("Are you sure you want to delete this post?")) {
-      try {
-        await postsAPI.delete(id);
-        removePost(post.id);
-        navigate("/community");
-        showToast("Post deleted", "success");
-      } catch (error: any) {
-        console.error("Error deleting post:", error);
-        showToast(error.message || "Failed to delete post. Please try again.", "error");
-      }
+    try {
+      await postsAPI.delete(id);
+      removePost(post.id);
+      navigate("/community");
+      showToast("Post deleted", "success");
+    } catch (error: any) {
+      console.error("Error deleting post:", error);
+      showToast(error.message || "Failed to delete post. Please try again.", "error");
+    } finally {
+      setIsDeleteDialogOpen(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background pb-20">
+    <div className="pb-20">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <Button
           variant="ghost"
@@ -221,16 +227,16 @@ const PostDetail = () => {
                   by {post.author} • {formatDate(post.createdAt)}
                   {post.updatedAt ? ` • Updated` : ''}
                 </CardDescription>
-
-                {post.flair && <Badge variant="secondary">{post.flair}</Badge>}
-                <Badge variant="outline">{post.category}</Badge>
+                <div className="flex gap-2">
+                  {post.flair && <Badge variant="secondary">{post.flair}</Badge>}
+                  <Badge variant="outline">{post.category}</Badge></div>
               </div>
               {isAuthor && (
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={handleDelete}
+                    onClick={handleDeleteClick}
                     aria-label="Delete post"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -246,27 +252,27 @@ const PostDetail = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-9 w-9 hover:bg-transparent"
                   onClick={() => handleVote("up")}
                   aria-label="Upvote"
                 >
-                  <ChevronUp
-                    className={`h-4 w-4 ${post.userVote === "up" ? "text-primary fill-primary" : ""
+                  <ArrowBigUp
+                    className={`h-7 w-7 ${post.userVote === "up" ? "text-primary fill-primary" : "text-muted-foreground hover:text-primary"
                       }`}
                   />
                 </Button>
-                <span className="font-semibold min-w-[2rem] text-center text-base">
+                <span className={`font-bold min-w-[2rem] text-center text-lg ${post.userVote === "up" ? "text-primary" : post.userVote === "down" ? "text-blue-600" : ""}`}>
                   {post.votes}
                 </span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9"
+                  className="h-9 w-9 hover:bg-transparent"
                   onClick={() => handleVote("down")}
                   aria-label="Downvote"
                 >
-                  <ChevronDown
-                    className={`h-4 w-4 ${post.userVote === "down" ? "text-destructive fill-destructive" : ""
+                  <ArrowBigDown
+                    className={`h-7 w-7 ${post.userVote === "down" ? "text-blue-600 fill-blue-600" : "text-muted-foreground hover:text-blue-600"
                       }`}
                   />
                 </Button>
@@ -276,7 +282,7 @@ const PostDetail = () => {
                 size="sm"
                 onClick={() => setIsCommentDialogOpen(true)}
               >
-                <MessageCircle className="mr-2 h-4 w-4" />
+                <MessageSquare className="mr-2 h-4 w-4" />
                 Add Comment
               </Button>
               <Button
@@ -344,6 +350,15 @@ const PostDetail = () => {
             onSubmit={() => selectedCommentId && handleReply(selectedCommentId, replyText)}
           />
         )}
+
+        <ConfirmationDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          title="Delete Post"
+          description="Are you sure you want to delete this post? This action cannot be undone."
+          confirmLabel="Delete"
+          onConfirm={handleConfirmDelete}
+        />
       </div>
     </div>
   );
@@ -401,7 +416,7 @@ const CommentItem = ({
               className="h-7 text-xs"
               onClick={() => setIsReplyDialogOpen(true)}
             >
-              <MessageCircle className="mr-1 h-3 w-3" />
+              <MessageSquare className="mr-1 h-3 w-3" />
               Reply {totalReplies > 0 && `(${totalReplies})`}
             </Button>
             {comment.replies && comment.replies.length > 0 && (
