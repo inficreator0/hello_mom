@@ -325,7 +325,7 @@ const Community = () => {
           className={`container mx-auto px-4 max-w-6xl transition-all duration-300 overflow-hidden ${showHeader ? "max-h-24 opacity-100 pt-8 pb-2" : "max-h-0 opacity-0 pt-0 pb-0"
             }`}
         >
-          <div className="flex flex-row md:flex-row justify-between items-start md:items-center mb-2 gap-4">
+          <div className="flex flex-row md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h1 className="text-2xl font-bold text-foreground mb-1">Community</h1>
               <p className="text-xs text-muted-foreground">Share, connect, and support each other</p>
@@ -338,7 +338,7 @@ const Community = () => {
         </div>
 
         {/* Search & Categories - always sticky */}
-        <div className="container mx-auto px-4 max-w-6xl">
+        <div className="container mx-auto px-4 max-w-6xl py-3">
           <SearchBar
             placeholder="Search posts..."
             value={searchQuery}
