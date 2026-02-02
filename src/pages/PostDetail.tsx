@@ -15,7 +15,7 @@ import { useToast } from "../context/ToastContext";
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPostById, updatePost, refreshPosts, removePost, loadComments } = usePostsStore();
+  const { getPostById, updatePost, refreshPosts, removePost, loadComments, toggleBookmark } = usePostsStore();
   const post = id ? getPostById(id) : undefined;
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -130,11 +130,12 @@ const PostDetail = () => {
     }
   };
 
-  const handleBookmark = () => {
-    updatePost(post.id as string, (currentPost) => ({ //TODO: fix this
-      ...currentPost,
-      bookmarked: !currentPost.bookmarked,
-    }));
+  const handleBookmark = async () => {
+    try {
+      await toggleBookmark(post.id);
+    } catch (error: any) {
+      showToast(error.message || "Failed to update bookmark", "error");
+    }
   };
 
   const handleAddComment = async () => {

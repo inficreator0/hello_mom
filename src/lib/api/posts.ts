@@ -55,6 +55,18 @@ export const postsAPI = {
       method: "POST",
     });
   },
+
+  save: async (id: string) => {
+    await apiRequest(`/posts/${id}/save`, {
+      method: "POST",
+    });
+  },
+
+  unsave: async (id: string) => {
+    await apiRequest(`/posts/${id}/save`, {
+      method: "DELETE",
+    });
+  },
 };
 
 export const feedAPI = {

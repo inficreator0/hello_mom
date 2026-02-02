@@ -16,6 +16,7 @@ interface PostsState {
   updatePost: (postId: string | number, updater: (post: Post) => Post) => void;
   addPost: (post: Post) => void;
   removePost: (postId: string | number) => void;
+  toggleBookmark: (postId: string | number) => Promise<void>;
 }
 
 // Transform backend post response to frontend Post format
@@ -188,6 +189,32 @@ export const usePostsStore = create<PostsState>((set, get) => ({
     set((state) => ({
       posts: state.posts.filter((post) => String(post.id) !== String(postId)),
     }));
+  },
+
+  toggleBookmark: async (postId: string | number) => {
+    const { updatePost } = get();
+    const postIdStr = String(postId);
+    const post = get().posts.find((p) => String(p.id) === postIdStr);
+
+    if (!post) return;
+
+    const previousBookmarkedState = post.bookmarked;
+
+    // Optimistic update
+    updatePost(postId, (p) => ({ ...p, bookmarked: !p.bookmarked }));
+
+    try {
+      if (previousBookmarkedState) {
+        await postsAPI.unsave(postIdStr);
+      } else {
+        await postsAPI.save(postIdStr);
+      }
+    } catch (error: any) {
+      console.error("Error toggling bookmark:", error);
+      // Revert optimistic update
+      updatePost(postId, (p) => ({ ...p, bookmarked: previousBookmarkedState }));
+      // Optional: Show toast or alert here via UI
+    }
   },
 }));
 

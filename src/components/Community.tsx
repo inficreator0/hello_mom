@@ -16,7 +16,7 @@ import Loader from "./common/Loader";
 const CATEGORIES: CommunityCategory[] = ["All", "Pregnancy", "Postpartum", "Feeding", "Sleep", "Mental Health", "Recovery", "Milestones"];
 
 const Community = () => {
-  const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost, hasMore, loadMorePosts } = usePostsStore();
+  const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost, hasMore, loadMorePosts, toggleBookmark } = usePostsStore();
   const { showToast } = useToast();
 
   const [selectedCategory, setSelectedCategory] = useState<CommunityCategory>("All");
@@ -195,11 +195,15 @@ const Community = () => {
     }
   };
 
-  const handleBookmark = (postId: string | number) => {
-    updatePost(postId as string, (post) => ({ //TODO: fix this
-      ...post,
-      bookmarked: !post.bookmarked,
-    }));
+  const handleBookmark = async (postId: string | number) => {
+    try {
+      await toggleBookmark(postId);
+      const post = posts.find(p => String(p.id) === String(postId));
+      // Toast logic can be added here if needed, but optimistic UI handles visual feedback
+      // Maybe only show toast on error or if user explicitly wants confirmation
+    } catch (error: any) {
+      showToast(error.message || "Failed to update bookmark", "error");
+    }
   };
 
   const handleAddComment = async () => {
