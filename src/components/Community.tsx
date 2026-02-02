@@ -316,8 +316,8 @@ const Community = () => {
       {/* Sticky Header Container */}
       <div
         className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled
-            ? "bg-primary/20 backdrop-blur-md shadow-sm border-b border-primary/20 supports-[backdrop-filter]:bg-primary/10"
-            : ""
+          ? "bg-primary/20 backdrop-blur-md shadow-sm border-b border-primary/20 supports-[backdrop-filter]:bg-primary/10"
+          : ""
           }`}
       >
         {/* Header - hides on scroll direction */}
@@ -338,7 +338,7 @@ const Community = () => {
         </div>
 
         {/* Search & Categories - always sticky */}
-        <div className="container mx-auto px-4 max-w-6xl py-3">
+        <div className="container mx-auto px-4 max-w-6xl">
           <SearchBar
             placeholder="Search posts..."
             value={searchQuery}
