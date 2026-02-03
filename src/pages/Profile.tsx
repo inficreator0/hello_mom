@@ -342,7 +342,6 @@ export const Profile = () => {
                 onDelete={() => { }}
                 onVote={() => { }}
                 onBookmark={() => { }}
-                onComment={() => { }}
                 onReply={() => { }}
               />
             ))}

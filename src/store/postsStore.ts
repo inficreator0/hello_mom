@@ -11,7 +11,7 @@ interface PostsState {
   nextCursor: string | null;
   currentCategory: string | null;
   currentSort: "recent" | "upvotes";
-  refreshPosts: (category?: string, sort?: "recent" | "upvotes") => Promise<void>;
+  refreshPosts: (category?: string, sort?: "recent" | "upvotes", forceRefresh?: boolean) => Promise<void>;
   loadMorePosts: () => Promise<void>;
   loadComments: (postId: string | number) => Promise<void>;
   getPostById: (id: string | number) => Post | undefined;
@@ -78,17 +78,29 @@ export const usePostsStore = create<PostsState>((set, get) => ({
   currentCategory: "All",
   currentSort: "recent", // Default sort
 
-  refreshPosts: async (category?: string, sort?: "recent" | "upvotes") => {
+  refreshPosts: async (category?: string, sort?: "recent" | "upvotes", forceRefresh = false) => {
+    const { currentCategory, currentSort, posts, isLoading } = get();
+
     // Determine effective category and sort
-    const effectiveCategory = category !== undefined ? category : get().currentCategory;
-    const effectiveSort = sort !== undefined ? sort : get().currentSort;
+    const effectiveCategory = category !== undefined ? category : currentCategory;
+    const effectiveSort = sort !== undefined ? sort : currentSort;
+
+    // If not a force refresh, and categories/sort match, and we already have data, just return
+    if (!forceRefresh && effectiveCategory === currentCategory && effectiveSort === currentSort && posts.length > 0) {
+      return;
+    }
 
     // Check if we are already loading to prevent double-mounts
-    const { isLoading } = get();
     if (isLoading) return;
 
     try {
-      set({ isLoading: true, posts: [], currentCategory: effectiveCategory || "All", currentSort: effectiveSort });
+      set({
+        isLoading: true,
+        // Only clear posts if specifically requested or if filters changed
+        posts: forceRefresh || effectiveCategory !== currentCategory || effectiveSort !== currentSort ? [] : posts,
+        currentCategory: effectiveCategory || "All",
+        currentSort: effectiveSort
+      });
 
       const response = await feedAPI.getFeedCursor({
         sort: effectiveSort,
@@ -106,7 +118,10 @@ export const usePostsStore = create<PostsState>((set, get) => ({
       });
     } catch (error) {
       console.error("Error fetching posts:", error);
-      set({ posts: [] });
+      // Only clear if we were starting fresh
+      if (forceRefresh || effectiveCategory !== currentCategory || effectiveSort !== currentSort) {
+        set({ posts: [] });
+      }
     } finally {
       set({ isLoading: false });
     }

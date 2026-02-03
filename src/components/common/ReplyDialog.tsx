@@ -29,8 +29,8 @@ const ReplyDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{replyingTo ? `Reply to ${replyingTo}`: "Share your response to this comment." }</DialogTitle>
-        
+          <DialogTitle>{replyingTo ? `Reply to ${replyingTo}` : "Share your response to this comment."}</DialogTitle>
+
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -40,6 +40,7 @@ const ReplyDialog = ({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               rows={4}
+              className="focus-visible:ring-1 focus-visible:ring-offset-0"
             />
           </div>
         </div>

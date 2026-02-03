@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { Home, Users, Activity, FileText, Stethoscope } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "../lib/utils";
@@ -5,6 +6,27 @@ import { cn } from "../lib/utils";
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // If scrolling down, hide; if scrolling up, show
+      // Add a small threshold to avoid flicker
+      if (currentScrollY > lastScrollY.current + 10) {
+        setIsVisible(false);
+      } else if (currentScrollY < lastScrollY.current - 10 || currentScrollY < 10) {
+        setIsVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const navItems = [
     { path: "/community", icon: Home, label: "Home" },
@@ -15,7 +37,12 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border shadow-lg">
+    <nav
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border shadow-lg transition-transform duration-300 ease-in-out",
+        !isVisible && "translate-y-full"
+      )}
+    >
       <div className="flex justify-around items-center h-14 max-w-md mx-auto px-2">
         {navItems.map((item) => {
           const Icon = item.icon;

@@ -9,10 +9,12 @@ import {
   Reply,
   Loader2,
   MoreVertical,
+  Flag,
 } from "lucide-react";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { usePostsStore } from "../../store/postsStore";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../../context/ToastContext";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -27,6 +29,7 @@ import { Post, Comment } from "../../types";
 import { useState, memo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import ReplyDialog from "./ReplyDialog";
+import ReportDialog from "./ReportDialog";
 
 interface PostCardProps {
   post: Post;
@@ -34,7 +37,6 @@ interface PostCardProps {
   onDelete?: (postId: string | number) => void;
   onVote?: (postId: string | number, voteType: "up" | "down") => void;
   onBookmark?: (postId: string | number) => void;
-  onComment?: (postId: string | number) => void;
   onReply?: (
     postId: string | number,
     commentId: string | number,
@@ -42,6 +44,7 @@ interface PostCardProps {
   ) => void;
   formatDate?: (date: Date | string) => string;
   showActions?: boolean;
+  onReport?: (postId: string | number, reason: string) => void;
 }
 
 /* ---------------------------------------------
@@ -56,12 +59,20 @@ interface PostCardHeaderProps {
   showActions: boolean;
   onEdit?: (post: Post) => void;
   onDelete?: (postId: string | number) => void;
-  navigate: ReturnType<typeof useNavigate>;
+  onReport?: (postId: string | number, reason: string) => void;
 }
 
-const PostCardHeader = ({ post, isAuthor, formatDate, showActions, onEdit, onDelete }: PostCardHeaderProps) => {
+const PostCardHeader = ({ post, isAuthor, formatDate, showActions, onEdit, onDelete, onReport }: PostCardHeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+
+  const handleReportSubmit = (reason: string) => {
+    if (onReport) {
+      onReport(post.id, reason);
+    }
+    setIsReportDialogOpen(false);
+  };
 
   return (
     <>
@@ -74,7 +85,6 @@ const PostCardHeader = ({ post, isAuthor, formatDate, showActions, onEdit, onDel
 
             <CardDescription className="text-[10px] mb-[4px]">
               by {post.author} • {formatDate(post.createdAt)}
-              {/* {post.updatedAt && <span> • Updated</span>} */}
             </CardDescription>
             <div className="flex gap-2">
               {post.flair && <Badge variant="secondary">{post.flair}</Badge>}
@@ -82,7 +92,7 @@ const PostCardHeader = ({ post, isAuthor, formatDate, showActions, onEdit, onDel
             </div>
           </div>
 
-          {showActions && isAuthor && (onEdit || onDelete) && (
+          {showActions && (
             <div className="relative">
               <Button
                 variant="ghost"
@@ -106,7 +116,7 @@ const PostCardHeader = ({ post, isAuthor, formatDate, showActions, onEdit, onDel
                     }}
                   />
                   <div className="absolute right-0 top-8 z-20 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 bg-[white]">
-                    {onEdit && (
+                    {isAuthor && onEdit && (
                       <button
                         className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                         onClick={(e) => {
@@ -119,7 +129,7 @@ const PostCardHeader = ({ post, isAuthor, formatDate, showActions, onEdit, onDel
                         Edit
                       </button>
                     )}
-                    {onDelete && (
+                    {isAuthor && onDelete && (
                       <button
                         className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-destructive hover:text-destructive-foreground text-destructive"
                         onClick={(e) => {
@@ -130,6 +140,19 @@ const PostCardHeader = ({ post, isAuthor, formatDate, showActions, onEdit, onDel
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
+                      </button>
+                    )}
+                    {!isAuthor && onReport && (
+                      <button
+                        className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsMenuOpen(false);
+                          setIsReportDialogOpen(true);
+                        }}
+                      >
+                        <Flag className="mr-2 h-4 w-4" />
+                        Report
                       </button>
                     )}
                   </div>
@@ -154,6 +177,12 @@ const PostCardHeader = ({ post, isAuthor, formatDate, showActions, onEdit, onDel
         }}
         isLoading={false}
       />
+
+      <ReportDialog
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        onSubmit={handleReportSubmit}
+      />
     </>
   );
 };
@@ -170,11 +199,11 @@ interface PostCardActionsProps {
   post: Post;
   onVote?: (postId: string | number, voteType: "up" | "down") => void;
   onBookmark?: (postId: string | number) => void;
-  onComment?: (postId: string | number) => void;
   onToggleComments: (e: React.MouseEvent) => void;
 }
 
-const PostCardActions = ({ post, onVote, onBookmark, onComment, onToggleComments }: PostCardActionsProps) => {
+const PostCardActions = ({ post, onVote, onBookmark, onToggleComments }: PostCardActionsProps) => {
+  const navigate = useNavigate();
   return (
     <CardContent className="py-0">
       <div className="flex items-center gap-4 flex-wrap">
@@ -199,8 +228,11 @@ const PostCardActions = ({ post, onVote, onBookmark, onComment, onToggleComments
           </div>
         )}
 
-        {/* Comment Button (Toggles Section) */}
-        <Button variant="ghost" size="sm" onClick={onToggleComments}>
+        {/* Comment Button (Navigates to detail) */}
+        <Button variant="ghost" size="sm" onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/post/${post.id}`);
+        }}>
           <MessageSquare className="mr-2 h-4 w-4" />
           {post.commentCount || 0}
         </Button>
@@ -221,8 +253,8 @@ const PostCardActions = ({ post, onVote, onBookmark, onComment, onToggleComments
 };
 
 /* FOOTER (Add Comment Input Trigger) */
-const PostCardFooter = ({ onComment, postId }: { onComment?: (id: string | number) => void, postId: string | number }) => {
-  if (!onComment) return null;
+const PostCardFooter = ({ postId }: { postId: string | number }) => {
+  const navigate = useNavigate();
 
   return (
     <CardFooter className="pt-0 pb-1">
@@ -231,7 +263,7 @@ const PostCardFooter = ({ onComment, postId }: { onComment?: (id: string | numbe
         className="text-sm text-muted-foreground hover:text-primary w-full justify-start pl-0"
         onClick={(e) => {
           e.stopPropagation();
-          onComment(postId);
+          navigate(`/post/${postId}`);
         }}
       >
         <MessageSquare className="mr-2 h-4 w-4" />
@@ -251,17 +283,23 @@ const PostCard = memo(({
   onDelete,
   onVote,
   onBookmark,
-  onComment,
   onReply,
+  onReport,
   formatDate,
   showActions = true,
 }: PostCardProps) => {
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
-  const loadComments = usePostsStore(state => state.loadComments);
+  const handleReport = (id: string | number, reason: string) => {
+    if (onReport) {
+      onReport(id, reason);
+    } else {
+      // Default report handler
+      showToast(`Post reported: ${reason.slice(0, 20)}...`, "success");
+    }
+  };
 
   const defaultFormatDate = (date: Date | string) => {
     const dateObj = typeof date === "string" ? new Date(date) : date;
@@ -290,16 +328,6 @@ const PostCard = memo(({
     navigate(`/post/${post.id}`);
   };
 
-  const handleToggleComments = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!commentsOpen && post.comments.length === 0 && (post.commentCount || 0) > 0) {
-      setLoadingComments(true);
-      await loadComments(post.id);
-      setLoadingComments(false);
-    }
-    setCommentsOpen((prev) => !prev);
-  };
-
   return (
     <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={handleCardClick}>
 
@@ -310,44 +338,24 @@ const PostCard = memo(({
         showActions={showActions}
         onEdit={onEdit}
         onDelete={onDelete}
-        navigate={navigate}
+        onReport={handleReport}
       />
 
       <PostCardContent content={post.content} />
 
-      <PostCardActions
-        post={post}
-        onVote={onVote}
-        onBookmark={onBookmark}
-        onComment={onComment}
-        onToggleComments={handleToggleComments}
-      />
+      {showActions && (
+        <PostCardActions
+          post={post}
+          onVote={onVote}
+          onBookmark={onBookmark}
+          onToggleComments={(e) => {
+            e.stopPropagation();
+            navigate(`/post/${post.id}`);
+          }}
+        />
+      )}
 
-      <PostCardFooter onComment={onComment} postId={post.id} />
-
-      {/* COLLAPSIBLE COMMENTS PANEL */}
-      <div
-        className={`transition-all overflow-hidden ${commentsOpen ? "max-h-[1000px] opacity-100 px-4 pb-4" : "max-h-0 opacity-0 px-4"
-          }`}
-      >
-        <div className="w-full border-t pt-4 space-y-3">
-          {loadingComments ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : (
-            post.comments.map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                formatDate={format}
-                postId={post.id}
-                onReply={onReply}
-              />
-            ))
-          )}
-        </div>
-      </div>
+      {showActions && <PostCardFooter postId={post.id} />}
     </Card>
   );
 });

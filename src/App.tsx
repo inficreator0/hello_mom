@@ -22,6 +22,12 @@ import { UpdatePrompt } from './components/UpdatePrompt';
 
 // Component to handle authenticated routes
 const AuthenticatedApp = () => {
+  React.useLayoutEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-background relative isolate">
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-primary/30 to-background" />

@@ -56,6 +56,7 @@ const CommentDialog = ({
               onChange={(e) => onChange(e.target.value)}
               rows={4}
               disabled={isSubmitting}
+              className="focus-visible:ring-1 focus-visible:ring-offset-0"
             />
           </div>
         </div>

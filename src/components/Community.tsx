@@ -20,15 +20,14 @@ import { CommunityEmptyState } from "./common/CommunityEmptyState";
 const CATEGORIES: CommunityCategory[] = ["All", "Pregnancy", "Postpartum", "Feeding", "Sleep", "Mental Health", "Recovery", "Milestones"];
 
 const Community = () => {
-  const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost, hasMore, loadMorePosts, toggleBookmark, currentSort } = usePostsStore();
+  const { posts, updatePost, refreshPosts, isLoading, hasLoaded, addPost, removePost, hasMore, loadMorePosts, toggleBookmark, currentSort, currentCategory } = usePostsStore();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [selectedCategory, setSelectedCategory] = useState<CommunityCategory>("All");
+  const [selectedCategory, setSelectedCategory] = useState<CommunityCategory>((currentCategory as CommunityCategory) || "All");
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | number | null>(null);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [formData, setFormData] = useState<PostFormData>({
@@ -39,14 +38,51 @@ const Community = () => {
   });
   const [commentText, setCommentText] = useState("");
 
-  // Load posts when category changes or on mount
-  // Load posts when category changes or on mount
+  // Load posts on mount (only if empty or category mismatch)
   useEffect(() => {
-    // We can rely on the store to handle deduplication or just call it.
-    // To be safe against double-mounts in StrictMode, we could use a ref, 
-    // but the store's isLoading check should handle it now.
     void refreshPosts(selectedCategory);
   }, [selectedCategory, refreshPosts]);
+
+  // Scroll restoration logic
+  useEffect(() => {
+    // Only restore scroll if we have posts and we are not currently loading
+    if (posts.length > 0 && !isLoading) {
+      const savedScrollPos = sessionStorage.getItem("community-scroll-pos");
+      if (savedScrollPos && savedScrollPos !== "0") {
+        // Disable browser's auto scroll restoration to prevent conflicts
+        if ('scrollRestoration' in window.history) {
+          window.history.scrollRestoration = 'manual';
+        }
+
+        // Use multiple attempts to ensure layout is ready and stable
+        const timer1 = setTimeout(() => window.scrollTo(0, parseInt(savedScrollPos, 10)), 30);
+        const timer2 = setTimeout(() => window.scrollTo(0, parseInt(savedScrollPos, 10)), 100);
+        const timer3 = setTimeout(() => window.scrollTo(0, parseInt(savedScrollPos, 10)), 300);
+        const timer4 = setTimeout(() => window.scrollTo(0, parseInt(savedScrollPos, 10)), 600);
+
+        return () => {
+          clearTimeout(timer1);
+          clearTimeout(timer2);
+          clearTimeout(timer3);
+          clearTimeout(timer4);
+        };
+      }
+    }
+  }, [posts.length, isLoading]);
+
+  // Save scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      // Only save if it's a meaningful scroll position to avoid clearing on accidental resets
+      if (currentScrollY > 0) {
+        sessionStorage.setItem("community-scroll-pos", currentScrollY.toString());
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Infinite scroll observer
   const observerTarget = useRef<HTMLDivElement>(null);
@@ -187,25 +223,6 @@ const Community = () => {
     }
   };
 
-  const handleAddComment = async () => {
-    if (!selectedPostId || !commentText.trim()) return;
-
-    try {
-      await commentsAPI.create(String(selectedPostId), {
-        content: commentText,
-      });
-
-      // Refresh posts to get updated comments
-      await refreshPosts();
-      setCommentText("");
-      setIsCommentDialogOpen(false);
-      setSelectedPostId(null);
-    } catch (error: any) {
-      console.error("Error adding comment:", error);
-      alert(error.message || "Failed to add comment. Please try again.");
-    }
-  };
-
   const handleReply = async (postId: string | number, commentId: string | number, replyContent: string) => {
     try {
       await commentsAPI.create(String(postId), {
@@ -230,11 +247,6 @@ const Community = () => {
       flair: post.flair || "",
     });
     setIsEditDialogOpen(true);
-  };
-
-  const openCommentDialog = (postId: string | number) => {
-    setSelectedPostId(postId);
-    setIsCommentDialogOpen(true);
   };
 
   const formatDate = (date: Date | string) => {
@@ -328,7 +340,8 @@ const Community = () => {
                 className="pl-3 pr-1 py-1 h-7 flex items-center gap-1 cursor-pointer hover:bg-secondary/80 transition-colors border-primary/20 bg-primary/10 text-primary"
                 onClick={() => {
                   setSelectedCategory("All");
-                  refreshPosts("All");
+                  sessionStorage.removeItem("community-scroll-pos"); // Clear scroll on filter reset
+                  refreshPosts("All", undefined, true); // Force refresh on explicit reset
                 }}
               >
                 {selectedCategory}
@@ -354,6 +367,7 @@ const Community = () => {
                 selectedCategory={selectedCategory}
                 onCategoryChange={(category) => {
                   setSelectedCategory(category);
+                  sessionStorage.removeItem("community-scroll-pos"); // Clear scroll on category change
                   setIsFilterOpen(false);
                 }}
               />
@@ -367,7 +381,8 @@ const Community = () => {
                   size="sm"
                   onClick={() => {
                     if (currentSort !== "recent") {
-                      refreshPosts(selectedCategory, "recent");
+                      sessionStorage.removeItem("community-scroll-pos"); // Clear scroll on sort change
+                      refreshPosts(selectedCategory, "recent", true); // Force refresh
                       setIsFilterOpen(false);
                     }
                   }}
@@ -380,7 +395,8 @@ const Community = () => {
                   size="sm"
                   onClick={() => {
                     if (currentSort !== "upvotes") {
-                      refreshPosts(selectedCategory, "upvotes");
+                      sessionStorage.removeItem("community-scroll-pos"); // Clear scroll on sort change
+                      refreshPosts(selectedCategory, "upvotes", true); // Force refresh
                       setIsFilterOpen(false);
                     }
                   }}
@@ -408,13 +424,7 @@ const Community = () => {
           submitLabel="Update"
         />
 
-        <CommentDialog
-          open={isCommentDialogOpen}
-          onOpenChange={setIsCommentDialogOpen}
-          value={commentText}
-          onChange={setCommentText}
-          onSubmit={handleAddComment}
-        />
+
 
         <div className="space-y-4">
           {isLoading && posts.length === 0 ? (
@@ -435,7 +445,6 @@ const Community = () => {
                 onDelete={handleDeletePost}
                 onVote={handleVote}
                 onBookmark={handleBookmark}
-                onComment={openCommentDialog}
                 onReply={handleReply}
                 formatDate={formatDate}
               />
