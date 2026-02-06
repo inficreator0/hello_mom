@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://motherhood-community-app-latest.onrender.com/api";
+const API_BASE_URL = "http://hellomom-api.ddns.net:8080/api";
 
 // Get JWT token from localStorage
 const getToken = (): string | null => {
